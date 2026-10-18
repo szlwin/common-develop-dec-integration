@@ -1,0 +1,68 @@
+name: P0 fixed-provider DEC integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Unit and negative gate tests
+        run: python -m unittest discover -v -s tests
+  demo-fixed-providers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: demo-test2
+          MYSQL_ROOT_PASSWORD: demo-ci-only
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pdemo-ci-only" --health-interval=10s --health-timeout=5s --health-retries=12
+    env:
+      DEC_DB_URL: jdbc:mysql://127.0.0.1:3306/demo-test2
+      DEC_DB_USERNAME: root
+      DEC_DB_PASSWORD: demo-ci-only
+      DEC_MYSQL_JDBC_URL: jdbc:mysql://127.0.0.1:3306/demo-test2
+      DEC_MYSQL_USER: root
+      DEC_MYSQL_PASSWORD: demo-ci-only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: integration
+      - uses: actions/checkout@v4
+        with:
+          repository: szlwin/doc-eq-code-Dgremlin-skills
+          ref: 4fb21242498746365c201fdf2a7fd8052f3a122a
+          path: dec
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: dec/dec-java-lite/pom.xml
+      - name: Enable DEC Maven wrapper
+        run: chmod +x dec/dec-java-lite/mvnw
+      - name: Run full DEC fixed-provider chain with SYNTHETIC input gate
+        run: python integration/scripts/p0_integration.py --dec-root dec --output p0-output --demo-fixture-gate
+      - name: Archive independent workflow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p0-fixed-provider-evidence
+          path: |
+            p0-output/
+            dec/demo/order-payment-app/target/dec-binding-evidence.json
+            dec/demo/order-payment-app/target/surefire-reports/
+          if-no-files-found: warn

@@ -1,0 +1,26 @@
+{
+  "schema": "common-develop-dec/p0-providers/v1",
+  "strategy": "fixed-no-discovery",
+  "workflowOwner": "common-develop-opt (external lifecycle and gate)",
+  "providers": [
+    {
+      "id": "dec-design",
+      "capability": "design.business",
+      "authority": "demo/order-payment-yaml",
+      "entrypoints": ["skills/dec-design/scripts/validate_dec_yaml.py", "skills/dec-design/scripts/yaml_to_xml.py", "skills/dec-design/scripts/render_dec_graph.py"],
+      "output": "dec/canonical-yaml/v1 + dec/generated-html"
+    },
+    {
+      "id": "dec-java-lite",
+      "capability": "code.generate.java",
+      "entrypoints": ["dec-java-lite/mvnw", "dec-java-lite/dec-lite-cli/target/dec-lite-cli-0.1.0.jar"],
+      "output": "java/generated-source"
+    },
+    {
+      "id": "dec-implementation",
+      "capability": "implementation.business",
+      "entrypoints": ["skills/dec-implementation/scripts/validate_binding.py", "skills/dec-implementation/scripts/run_binding_verification.py"],
+      "output": "dec/implementation-binding/v1 + dec/test-evidence/v1"
+    }
+  ]
+}
