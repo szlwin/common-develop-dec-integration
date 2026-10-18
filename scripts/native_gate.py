@@ -41,6 +41,12 @@ def interpret_native_evidence(validation: Dict[str, Any],
         raise ValueError("native design output revision does not match handoff gate")
     if outcome.get("produced_by_agent") != gate.get("producer"):
         raise ValueError("native StageOutcome producer does not match handoff gate")
+    native_inputs = outcome.get("input_revisions")
+    native_evidence = outcome.get("evidence_ids")
+    if not isinstance(native_inputs, dict) or not native_inputs:
+        raise ValueError("native StageOutcome missing upstream requirement/design input revisions")
+    if not isinstance(native_evidence, list) or not native_evidence:
+        raise ValueError("native StageOutcome missing actual review/evidence references")
     if not outcome.get("id") or not event.get("event_id"):
         raise ValueError("native finalization missing stable outcome/event identity")
     return {
@@ -52,6 +58,8 @@ def interpret_native_evidence(validation: Dict[str, Any],
         "producedByAgent": outcome["produced_by_agent"],
         "nativeValidatorStatus": validation["status"],
         "nativeValidatorSchema": validation["schemaVersion"],
+        "inputRevisions": native_inputs,
+        "evidenceIds": native_evidence,
         "note": "Native validator confirms consistency; independent reviewer execution is enforced by upstream, not reproduced by this adapter."
     }
 
