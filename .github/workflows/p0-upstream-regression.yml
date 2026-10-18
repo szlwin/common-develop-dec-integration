@@ -29,9 +29,15 @@ jobs:
           set -euo pipefail
           cd opt-src/skills/common-develop-opt
           test -f SKILL.md
-          find scripts -name 'test_*.py' | sort | tee /tmp/opt-test-files.txt
+          find . -type f -name 'test_*.py' | sort | tee /tmp/opt-test-files.txt
           test "$(wc -l < /tmp/opt-test-files.txt)" -gt 0
-          python -m unittest discover -v -s scripts -p 'test_*.py' 2>&1 | tee /tmp/opt-regression.log
+          if [[ -d tests ]]; then
+            python -m unittest discover -v -s tests -p 'test_*.py' 2>&1 | tee /tmp/opt-regression.log
+          elif [[ -d scripts/tests ]]; then
+            python -m unittest discover -v -s scripts/tests -p 'test_*.py' 2>&1 | tee /tmp/opt-regression.log
+          else
+            python -m unittest discover -v -s scripts -p 'test_*.py' 2>&1 | tee /tmp/opt-regression.log
+          fi
           grep -Eq 'Ran [1-9][0-9]* tests?' /tmp/opt-regression.log
       - name: Standalone opt CLI smoke
         shell: bash
