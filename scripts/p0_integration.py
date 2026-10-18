@@ -186,7 +186,8 @@ class Runner:
             if native_opt_root is not None:
                 native_evidence = validate_native_with_runner(self, native_opt_root, native_task_dir, gate)
                 self.summary['workflowGate'].update({
-                    'nativeWorkflowExecutionVerified': True,
+                    'nativeWorkflowExecutionVerified': False,
+                    'nativeDesignStageOutcomeVerified': True,
                     'nativeEvidence': native_evidence,
                     'nativeSkillRoot': str(native_opt_root.resolve()),
                     'nativeTaskDir': str(native_task_dir.resolve())})
