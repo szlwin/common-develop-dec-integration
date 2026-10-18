@@ -37,3 +37,7 @@ jobs:
           python3 scripts/long_task.py help --command task-events --json | head -110
           echo '--- native task-context query help ---'
           python3 scripts/long_task.py help --command task-context --json | head -110
+          echo '--- native initialization options ---'
+          python3 scripts/long_task.py init --help | head -95
+          echo '--- event-query parser usage ---'
+          python3 scripts/long_task.py task-events --help | head -35
