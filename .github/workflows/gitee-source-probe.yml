@@ -31,3 +31,9 @@ jobs:
           python3 scripts/wk.py help --script wk --command progress --json | head -115
           echo '--- long_task public stage CLI metadata ---'
           python3 scripts/cli_help.py list --json | grep -E 'stage|phase|review|gate|long_task' | head -70 || true
+          echo '--- native long_task validation help ---'
+          python3 scripts/long_task.py help --command validate --json | head -90
+          echo '--- native stage result query help ---'
+          python3 scripts/long_task.py help --command task-events --json | head -110
+          echo '--- native task-context query help ---'
+          python3 scripts/long_task.py help --command task-context --json | head -110
