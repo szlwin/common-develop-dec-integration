@@ -60,6 +60,34 @@ def launch(skill_root: Path, doc_root: Path, output_dir: Path):
         print("Task ledger:", p.relative_to(doc_root))
     if not events:
         raise RuntimeError("Native wk start reported success but did not create a native task event ledger")
+    if len(events) != 1:
+        raise RuntimeError("Ambiguous native task created; refusing arbitrary selection")
+    task_dir = events[0].parent
+    begin = subprocess.run(
+        [sys.executable, str(wk), "begin", "-g", "ProjectManagerAgent",
+         "--task-dir", str(task_dir.resolve()), "--apply", "--json"],
+        cwd=str(script_cwd), capture_output=True, text=True)
+    (output_dir / "native-wk-begin.stdout.json").write_text(begin.stdout, encoding="utf-8")
+    (output_dir / "native-wk-begin.stderr.log").write_text(begin.stderr, encoding="utf-8")
+    info["taskDirRelativeToDocRoot"] = str(task_dir.relative_to(doc_root))
+    info["beginCliExitCode"] = begin.returncode
+    try:
+        begin_result = json.loads(begin.stdout)
+        info["beginNativeStatus"] = begin_result.get("status")
+        info["beginNextAction"] = begin_result.get("nextAction") or begin_result.get("next_action")
+        info["beginNextReviewer"] = begin_result.get("nextReviewer")
+        info["beginRequiresUserDecision"] = begin_result.get("requiresUserDecision")
+    except (json.JSONDecodeError, AttributeError):
+        info["beginNativeStatus"] = "NON_JSON"
+    (output_dir / "bootstrap-status.json").write_text(
+        json.dumps(info, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps({"officialBegin": info["beginNativeStatus"],
+                      "task": info["taskDirRelativeToDocRoot"],
+                      "requiresUserDecision": info.get("beginRequiresUserDecision"),
+                      "nextAction": info.get("beginNextAction")}, ensure_ascii=False))
+    if begin.returncode != 0 and info.get("beginRequiresUserDecision") is not True:
+        raise RuntimeError("Native wk begin failed unexpectedly; see saved official native output")
+
 
 
 def main():
