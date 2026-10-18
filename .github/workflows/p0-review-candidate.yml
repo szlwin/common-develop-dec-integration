@@ -1,0 +1,50 @@
+name: P0 prepare exact DEC design Review candidate
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build_native_review_packet.py'
+      - '.github/workflows/p0-review-candidate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  create-unapproved-review-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: integration
+      - uses: actions/checkout@v4
+        with:
+          repository: szlwin/doc-eq-code-Dgremlin-skills
+          ref: 4fb21242498746365c201fdf2a7fd8052f3a122a
+          path: dec
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original DEC design dependencies
+        run: python -m pip install -r dec/skills/dec-design/requirements.txt
+      - name: Check real canonical YAML before Review
+        run: python dec/skills/dec-design/scripts/validate_dec_yaml.py dec/demo/order-payment-yaml
+      - name: Generate unapproved content-addressed candidate
+        run: |
+          python integration/scripts/build_native_review_packet.py \
+            --dec-root dec \
+            --output review-candidate \
+            --expected-dec-commit 4fb21242498746365c201fdf2a7fd8052f3a122a
+      - name: Assert candidate cannot be mistaken for native approval
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("review-candidate/p0-native-review-candidate.json").read_text())
+          assert p["status"] == "AWAITING_INDEPENDENT_NATIVE_REVIEW"
+          assert p["approved"] is False and p["nativeStageOutcomeId"] is None
+          assert len(p["files"]) == 10
+          print("Review candidate prepared; native approval remains MISSING")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p0-native-unapproved-design-review-candidate
+          path: review-candidate/p0-native-review-candidate.json
