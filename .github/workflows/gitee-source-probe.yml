@@ -1,56 +1,36 @@
-name: Gitee common-develop-opt read-only source probe
+name: P0 real common-develop-opt native negative Gate
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  probe:
+  native-unapproved-task-must-block:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Fetch public Gitee source without executing code
+      - name: Checkout integration adapter
+        uses: actions/checkout@v4
+        with:
+          path: integration
+      - name: Get original common-develop-opt from Gitee
         shell: bash
         run: |
           set -euo pipefail
           git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git upstream
-          git -C upstream rev-parse HEAD
-          if [[ ! -f upstream/skills/common-develop-opt/SKILL.md ]]; then
-            echo 'Missing exact requested skill path'; exit 2
+          expected=b26715f6779b373b4f840b519ba9725fed5d789a
+          actual="$(git -C upstream rev-parse HEAD)"
+          echo "Gitee source commit: $actual"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Gitee baseline changed; review native CLI contract before updating the pinned commit"
+            exit 2
           fi
-          sed -n '1,90p' upstream/skills/common-develop-opt/SKILL.md
-          echo '--- relevant scripts and contracts ---'
-          find upstream/skills/common-develop-opt -maxdepth 5 -type f | grep -E '(long_task|runtime-contract|review-contract|stage_outcome|SKILL.md)' | head -100
-          cd upstream/skills/common-develop-opt
-          echo '--- long_task public CLI ---'
-          python3 scripts/long_task.py --help | head -110
-          echo '--- wk begin public help ---'
-          python3 scripts/wk.py help --script wk --command begin --json | head -115
-          echo '--- wk progress public help ---'
-          python3 scripts/wk.py help --script wk --command progress --json | head -115
-          echo '--- long_task public stage CLI metadata ---'
-          python3 scripts/cli_help.py list --json | grep -E 'stage|phase|review|gate|long_task' | head -70 || true
-          echo '--- native long_task validation help ---'
-          python3 scripts/long_task.py help --command validate --json | head -90
-          echo '--- native stage result query help ---'
-          python3 scripts/long_task.py help --command task-events --json | head -110
-          echo '--- native task-context query help ---'
-          python3 scripts/long_task.py help --command task-context --json | head -110
-          echo '--- native initialization options ---'
-          python3 scripts/long_task.py init --help | head -95
-          echo '--- event-query parser usage ---'
-          python3 scripts/long_task.py task-events --help | head -35
-          echo '--- native disposable init/task-events/validate ---'
-          docroot="$(mktemp -d)"
-          python3 scripts/long_task.py init -g ProjectManagerAgent --doc-root "$docroot" --version V_1.0 --target P0-READONLY-DEMO --json || true
-          taskdir="$docroot/version/V_1.0/task/P0-READONLY-DEMO"
-          python3 scripts/long_task.py task-events -g ProjectManagerAgent --task-dir "$taskdir" --json | head -90 || true
-          python3 scripts/long_task.py validate -g ProjectManagerAgent --task-dir "$taskdir" --json | head -90 || true
-          python3 scripts/wk.py begin -g ProjectManagerAgent --task-dir "$taskdir" --json | head -70 || true
-          echo '--- native outcome event type constants ---'
-          grep -R -n -E 'STAGE_OUTCOME|STAGE.*FINALIZ|PHASE.*FINALIZ|stage_outcome' scripts/runtime/_long_task/commands/phases.py scripts/runtime/_long_task/stage_result.py scripts/runtime/_long_task/commands/queries.py | head -105 || true
-          echo '--- native outcome event payload actual code ---'
-          sed -n '640,710p' scripts/runtime/_long_task/commands/phases.py
-          echo '--- stage outcome normalization actual code ---'
-          sed -n '95,150p' scripts/runtime/_long_task/stage_result.py
+          test -f upstream/skills/common-develop-opt/SKILL.md
+      - name: Native Python runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Verify native CLI runs and blocks unapproved design
+        run: python integration/scripts/native_negative_check.py --opt-root upstream/skills/common-develop-opt
