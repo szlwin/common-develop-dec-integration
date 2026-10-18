@@ -82,3 +82,22 @@ The real approved upstream task, independent Reviewer execution, native PASSED S
 A **real** `common-develop-opt` task was created through its official `wk start --apply` CLI (not manually constructed). A genuine `task_events.jsonl` exists for `FEATURE-DESC-DAE4FAB5F9F4`. The official `wk begin --apply` returns `BLOCKED / EXECUTION_REQUIRED`, required Agent `RequirementConfirmationAgent`, reason `ARTIFACT_NOT_PUBLISHED`, with next legal `long_task.task-context` and `long_task.start-attempt`. This is the native lifecycle correctly rejecting advancement before a PASSED requirement-confirmation attempt and Artifact. There is no Review approval or design StageOutcome.
 
 **Native evidence:** [Actions #39150138291](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39150138291) (passed kickoff), artifact `p0-real-native-unreviewed-task` containing the authentic native task directory, event ledger and two CLI JSON responses. [How to resume authentic native execution](P0-native-task-handoff.md); [Issue #1](https://github.com/szlwin/common-develop-dec-integration/issues/1) remains OPEN. Overall P0 is still **BLOCKED**; do not equate `CREATED` or `EXECUTION_REQUIRED` with a PASSED design Gate.
+
+## 2026-10-19 — RequirementConfirmationAgent real Attempt and official published handoff
+
+The previously created task `FEATURE-DESC-DAE4FAB5F9F4` was resumed from its authentic CI evidence and checked against the exact Gitee source `b26715f6779b373b4f840b519ba9725fed5d789a`. The existing task had no plan tasks. A genuine, pending `task_plan.json` entry was authored for `TASK-REQCONF-P0-001`, along with the actual requirements confirmation Markdown. The original `long_task validate` accepted this plan.
+
+The **original native CLI** then ran:
+- `long_task task-context` for the actual Task ID;
+- `long_task start-attempt` -> `ATTEMPT-TASK-REQCONF-P0-001-I001-A001`, RUNNING;
+- `evidence snapshot-register` -> `EVD-000001`, immutable requirement Markdown snapshot;
+- `long_task finish-attempt --auto-evidence` -> **owner Attempt PASSED**, command Evidence `EVD-000002`;
+- the real Trace `TR-P0-REQCONF-001` mapped six Acceptance IDs `AC-01`…`AC-06` to the owner Task. All Trace/Review approvals remain PENDING;
+- `acceptance ensure-review` registered six **PENDING** `MANUAL_REVIEW` assertions for `RequirementAnalysisAgent`;
+- `long_task publish-artifact` -> **PUBLISHED**, StageOutcome ID `SO-FEATURE-DESC-DAE4FAB5F9F4-REQUIREMENT_CONFIRMATION-I001`, and phase Revision `REQCONF-P0-R01@sha256-130eb2a1a3d5b74f175755101737fe5b74a25e8fdee33665158af514a16a7db4`;
+- `long_task validate` -> PASSED (runtime structural integrity only);
+- `wk next` -> `REVIEW_REQUIRED`, `requiredAgent=RequirementAnalysisAgent`, `executionContext=ISOLATED_REVIEW_SESSION_REQUIRED`, `ownerContextReuseAllowed=false`.
+
+**Important status distinctions:** Owner Attempt PASSED is **not** independent Review PASSED. The StageOutcome is **PUBLISHED/RUNNING**, not `STAGE_OUTCOME_FINALIZED`. No Design StageOutcome exists; neither positive DEC native handoff nor complete P0 is verified. Review forms are prepared but **not submitted**. No P1 work has started.
+
+The authentic source and review handoff archive was generated separately for download in the task conversation, with six default-unanswered Review forms, the original append-only ledger, source snapshots, and checksums. [Exact review-handoff procedure](P0-requirement-review-handoff.md) and [P0 blocker Issue #1](https://github.com/szlwin/common-develop-dec-integration/issues/1) describe the isolated Reviewer boundary. **P0 still BLOCKED.**

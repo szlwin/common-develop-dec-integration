@@ -87,3 +87,8 @@ The complete standalone [upstream regression workflow](.github/workflows/p0-upst
 ### Exact order/payment review candidate (not an approval)
 
 The [P0 native review candidate workflow](.github/workflows/p0-review-candidate.yml) checks and exports a stable digest of the pinned upstream DEC canonical YAML, including individual file hashes and an explicit `AWAITING_INDEPENDENT_NATIVE_REVIEW` status. [Successful candidate generation #39147972411](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39147972411) is **not** a substitute for the independent original `common-develop-opt` Design Review. See [review scope](docs/P0-native-design-review.md) and [open P0 completion blocker #1](https://github.com/szlwin/common-develop-dec-integration/issues/1). Only an actual approved native StageOutcome and later phase proof can close P0.
+
+
+### Native requirement confirmation progressed to independent Review
+
+The authentic Gitee `common-develop-opt` RequirementConfirmationAgent created a real task plan, completed its Owner Attempt with immutable requirement snapshot and command Evidence, and successfully **published** the current requirement confirmation Artifact. Its six manual Review assertions are still PENDING. Native `wk next` requires `RequirementAnalysisAgent` in a separate isolated Reviewer session, so the integration **does not** claim a finalized PASSED StageOutcome. See [handoff guide](docs/P0-requirement-review-handoff.md) and [acceptance ledger](docs/P0-acceptance.md).
