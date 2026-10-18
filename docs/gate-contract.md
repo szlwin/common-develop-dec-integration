@@ -38,3 +38,14 @@ common-develop-opt external design Gate + frozen DEC YAML tree
 ```
 
 Any non-release stage failure stops downstream execution. A failed release-ready check remains a **failed product gate**, not a reason to claim the optional unfinished design nodes have been implemented. If the project later reaches 111/111 VERIFIED, the same integration flow can record `productReleaseReady: true`.
+
+## Native opt stage contract (actual upstream CLI)
+
+Verified Gitee source revision: `b26715f6779b373b4f840b519ba9725fed5d789a`. The real StageOutcome is emitted by `scripts/long_task.py finalize-phase` as an append-only `STAGE_OUTCOME_FINALIZED` event whose payload contains an `outcome` object. It includes `phase`, `status`, `output_revision`, `produced_by_agent` and `id`. Native read-only entrypoints are:
+
+```sh
+python3 scripts/long_task.py validate -g ProjectManagerAgent --task-dir <TASK_DIR> --json
+python3 scripts/long_task.py task-events -g ProjectManagerAgent --task-dir <TASK_DIR> --include-archive --json
+```
+
+A successful native validation of an INITIALIZED task does NOT mean design was approved. The integration additionally verifies the most recent finalized design event and requires status PASSED, output_revision == handoff revision, and producer identity match. All missing/stale/mismatched evidence is BLOCKED. Native review consistency is checked by the upstream validator; the adapter does not change Reviewer identities or infer independent contexts from JSON strings. The native task and the DEC YAML mapping must both exist before a positive integration claim.
