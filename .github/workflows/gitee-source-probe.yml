@@ -34,17 +34,3 @@ jobs:
           python-version: '3.9'
       - name: Verify native CLI runs and blocks unapproved design
         run: python integration/scripts/native_negative_check.py --opt-root upstream/skills/common-develop-opt
-      - name: Inspect native finalization contract (read-only diagnostic)
-        shell: bash
-        run: |
-          set -euo pipefail
-          f=upstream/skills/common-develop-opt/scripts/runtime/_long_task/commands/phases.py
-          grep -n -E 'outcome.*status|output_revision|input_revisions|evidence_ids|outcome =|stage_result|finalize_phase' "$f" | tail -65
-          grep -n -E 'StageOutcome|gate_status|"status"|"phase"|"id"|status.*PASSED' upstream/skills/common-develop-opt/scripts/runtime/_long_task/stage_result.py | head -85
-          echo '--- stage outcome construction ---'
-          sed -n '480,565p' "$f"
-      - name: Native reviewer evidence discovery (read-only)
-        shell: bash
-        run: |
-          echo '--- native review event evidence surfaces ---'
-          grep -R -n -E 'REVIEW.*(SUBMIT|ACCEPT|APPROV|FINALIZ)|review_result_refs|reviewer_agent' upstream/skills/common-develop-opt/scripts/runtime/_long_task/commands/ upstream/skills/common-develop-opt/scripts/runtime/_long_task/review_validation.py | head -90 || true

@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 try:
-    from native_gate import validate_native_with_runner
+    from native_gate import validate_native_with_runner, verify_content_bound_revision
 except ImportError:  # Allows direct imports by the unit-test harness.
-    from scripts.native_gate import validate_native_with_runner
+    from scripts.native_gate import validate_native_with_runner, verify_content_bound_revision
 
 VERSION = 'common-develop-dec/p0/v1'
 GATE_VERSION = 'common-develop-dec/p0-gate/v1'
@@ -184,7 +184,9 @@ class Runner:
             verified = check_gate(gate, self.dec_root, allow_fixture=fixture)
             self.summary['workflowGate'] = verified
             if native_opt_root is not None:
+                bound_digest = verify_content_bound_revision(gate)
                 native_evidence = validate_native_with_runner(self, native_opt_root, native_task_dir, gate)
+                native_evidence["approvedDesignTreeSha256"] = bound_digest
                 self.summary['workflowGate'].update({
                     'nativeWorkflowExecutionVerified': False,
                     'nativeDesignStageOutcomeVerified': True,

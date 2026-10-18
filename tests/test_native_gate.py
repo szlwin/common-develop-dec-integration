@@ -63,6 +63,22 @@ class NativeGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "review/evidence"):
             native.interpret_native_evidence(self.validation, self.events, self.gate)
 
+    def test_only_content_addressed_native_revision_is_accepted(self):
+        good_sha = "a" * 64
+        artifact = {"path": "demo/order-payment-yaml", "sha256": good_sha}
+        gate = {"revision": "sha256:" + good_sha, "artifacts": [artifact]}
+        self.assertEqual(native.verify_content_bound_revision(gate), good_sha)
+        gate["revision"] = "DESIGN-R01@arbitrary-label"
+        with self.assertRaisesRegex(ValueError, "content-bound"):
+            native.verify_content_bound_revision(gate)
+
+    def test_reopen_after_finalized_design_invalidates_approval(self):
+        self.events["events"].append({
+            "type": "TASK_STATE_PATCHED", "source": "long_task.py reopen-phase",
+            "event_id": "TE-002", "payload": {}})
+        with self.assertRaisesRegex(ValueError, "stale after"):
+            native.interpret_native_evidence(self.validation, self.events, self.gate)
+
     def test_producer_must_equal_native_event_producer(self):
         self.outcome["produced_by_agent"] = "DifferentAgent"
         with self.assertRaisesRegex(ValueError, "producer"):

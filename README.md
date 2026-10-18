@@ -67,3 +67,8 @@ CI now has a separate job that fetches the pinned Gitee Skill and **proves a nat
 P0 provides a **fixed** adapter and an auditable, sequential dependency chain. It does **not** (1) replace the common-develop-opt workflow engine or its Review gates; (2) support dynamic provider selection, Standard/Lightweight/-min mode routing, or generic SPI (planned P1); (3) validate real external payment/SMS/MongoDB systems; (4) declare the Demo product release-ready. The provided GitHub Actions workflow uses a fixture gate and is therefore only DEC-side integration verification. Full native dual-Skill validation requires an actual, verifiable common-develop-opt export.
 
 Sources: [DEC Demo](https://github.com/szlwin/doc-eq-code-Dgremlin-skills/blob/main/demo/README.md), [DEC integration results](https://github.com/szlwin/doc-eq-code-Dgremlin-skills/blob/main/demo/INTEGRATION.md), [dec-design](https://github.com/szlwin/doc-eq-code-Dgremlin-skills/blob/main/skills/dec-design/SKILL.md), [dec-implementation](https://github.com/szlwin/doc-eq-code-Dgremlin-skills/blob/main/skills/dec-implementation/SKILL.md).
+
+
+### P0 native content-binding requirement
+
+For positive native handoffs, the **native** design `output_revision` and the Gate `revision` must both equal `sha256:<DEC-YAML-tree-digest>` (digest algorithm in `docs/gate-contract.md`). This revision must be set through common-develop-opt's **real** approved artifact and independent Review process, *before* native `finalize-phase`; the adapter does not rewrite task events or create approvals. Any later native phase reopen/invalidation blocks reuse of the old design StageOutcome. Existing arbitrary-label gates remain valid for fixture-only DEC validation, but not native-positive handoff.

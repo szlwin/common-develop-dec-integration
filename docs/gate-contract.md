@@ -49,3 +49,10 @@ python3 scripts/long_task.py task-events -g ProjectManagerAgent --task-dir <TASK
 ```
 
 A successful native validation of an INITIALIZED task does NOT mean design was approved. The integration additionally verifies the most recent finalized design event and requires status PASSED, output_revision == handoff revision, and producer identity match. All missing/stale/mismatched evidence is BLOCKED. Native review consistency is checked by the upstream validator; the adapter does not change Reviewer identities or infer independent contexts from JSON strings. The native task and the DEC YAML mapping must both exist before a positive integration claim.
+
+
+## Content-addressed native handoff (required for positive P0)
+
+The native finalized design StageOutcome's `output_revision` **MUST equal** `sha256:<DEC YAML tree digest>` using the digest algorithm above. The Gate's `revision` must match this same value. This prevents a hand-edited arbitrary revision label from being treated as a verified mapping to a mutable DEC YAML directory. The digest is computed on the *exact canonical YAML tree presented for review*. It must be the native design artifact revision before the independent Review / `finalize-phase` occurs; retroactive relabeling is forbidden.
+
+The adapter rejects a StageOutcome if a subsequent native reopen/invalidation event exists. Native `long_task validate` confirms the current task record; independent review isolation remains the upstream host's responsibility. A valid SHA+Revision mapping alone **cannot prove that the reviewer inspected the same files**: that requires retaining native artifact submission, source references and Review evidence as part of the task. Therefore a matching design StageOutcome is an authorized *handoff*, not proof that the complete software lifecycle ran.

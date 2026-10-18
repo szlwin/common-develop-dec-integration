@@ -13,6 +13,26 @@ EXPECTED_SCHEMA = 2
 FINALIZED_EVENT = "STAGE_OUTCOME_FINALIZED"
 
 
+def verify_content_bound_revision(gate: dict) -> str:
+    """P0 requires the *native approved revision* to commit to the DEC bytes.
+
+    Native opt does not expose a signed mapping from an arbitrary revision label
+    to an external DEC directory. A free-form revision in a hand-written gate
+    must not upgrade an unreviewed YAML tree to an approved artifact.
+    """
+    import re
+    entries = gate.get("artifacts")
+    if not isinstance(entries, list):
+        raise ValueError("native Gate missing artifact snapshot")
+    digest = next((x.get("sha256") for x in entries
+                   if isinstance(x, dict) and x.get("path") == "demo/order-payment-yaml"), None)
+    if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+        raise ValueError("native Gate has no valid DEC canonical YAML digest")
+    if gate.get("revision") != "sha256:" + digest:
+        raise ValueError("native design output revision must be content-bound: sha256:<DEC-YAML-tree-digest>")
+    return digest
+
+
 def interpret_native_evidence(validation: Dict[str, Any],
                               event_query: Dict[str, Any],
                               gate: Dict[str, Any]) -> Dict[str, Any]:
@@ -34,7 +54,18 @@ def interpret_native_evidence(validation: Dict[str, Any],
         matches.append((event, outcome))
     if not matches:
         raise ValueError("no native finalized design StageOutcome in append-only ledger")
-    event, outcome = matches[-1]  # The latest finalized design revision, never any stale prior pass.
+    event, outcome = matches[-1]  # Latest design finalization from upstream task-events.
+    selected_index = next(i for i in range(len(event_query["events"]) - 1, -1, -1)
+                          if event_query["events"][i] is event)
+    # A later native reopen invalidates the earlier approval even if its
+    # historical finalized event is still in the append-only ledger.
+    for later in event_query["events"][selected_index + 1:]:
+        if not isinstance(later, dict):
+            continue
+        source = str(later.get("source") or "").lower()
+        event_type = str(later.get("type") or "").upper()
+        if "reopen-phase" in source or "REOPEN" in event_type or "INVALIDAT" in event_type:
+            raise ValueError("native design StageOutcome is stale after a reopen/invalidation event")
     if outcome.get("status") != "PASSED":
         raise ValueError("latest native design StageOutcome is not PASSED")
     if outcome.get("output_revision") != gate.get("revision"):

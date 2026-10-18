@@ -32,3 +32,8 @@ P0-6: this ledger records what is verified versus not.
 Run common-develop-opt's own authorized Agent workflow and independent Review until its genuine design finalize-phase records a PASSED StageOutcome, with its current task-event ledger. Bind that exact output_revision to the approved DEC YAML digest in an immutable handoff Gate. Invoke the adapter with --gate, --native-opt-root and --native-task-dir and collect native validate/task-events logs, Artifact manifest, all DEC commands, real JUnit reports and Binding evidence. Regress each independent Skill. Review all evidence before changing this P0 verdict; preserve productReleaseReady independently (four PLANNED IDs remain).
 
 Do not edit upstream canonical DEC YAML/XML to make integration checks pass. No fixture or actor-name switch is a real independent Review.
+
+
+### Review of 2026-10-19 and additional hardening
+
+The independent re-review confirmed CI 21/21 adapter tests and 34/34 JUnit with real DEC generated code/Binding, but no native approved design handoff. To avoid treating arbitrary revision labels as a provable native→DEC design mapping, the native positive path now requires `output_revision = sha256:<DEC-tree-digest>`, checked against bytes. Historical finalized events are invalid after a later reopen/invalidation. This strengthens admission correctness but does **not** create the missing independent Review or full native-positive run. Overall P0 remains **BLOCKED** until real native approval evidence is supplied and exercised.
