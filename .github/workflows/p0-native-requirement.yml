@@ -56,7 +56,7 @@ jobs:
           python "$skill/scripts/long_task.py" --help > native-requirement-evidence/native-command-list.txt
           python "$skill/scripts/long_task.py" help --command task-context --json > native-requirement-evidence/task-context-contract.json
           python "$skill/scripts/long_task.py" help --command start-attempt --json > native-requirement-evidence/start-attempt-contract.json
-          python "$skill/scripts/wk.py" context -g RequirementConfirmationAgent --task-dir "$task" --json > native-requirement-evidence/native-wk-context.json
+          python "$skill/scripts/wk.py" context -g ProjectManagerAgent --task-dir "$task" --json > native-requirement-evidence/native-wk-context.json
           echo '=== PLAN COMMAND DISCOVERY ==='
           grep -R -n -m 3 -E "def command_(add|plan|create)_task|add-task|plan-task|register-task|task-plan" "$skill/scripts/runtime/_long_task" "$skill/scripts/wk.py" | head -65 || true
           echo '=== LIST NATIVE ALLOWED COMMANDS ==='
