@@ -54,3 +54,8 @@ jobs:
           sed -n '1,62p' scripts/runtime/_long_task/contracts.py
           sed -n '170,217p' scripts/runtime/_long_task/validation/task_completion.py
           grep -R -n -m 2 'output_revision' assets/runtime/*json | head -25 || true
+          echo '=== Wk starts real task ==='
+          python scripts/wk.py help --script wk --command start --json | python -c "import json,sys; j=json.load(sys.stdin); print(j.get('usage')); print([(a['name'],a.get('required')) for a in j.get('arguments',[])])"
+          python scripts/wk.py help --script wk --command begin --json | python -c "import json,sys; j=json.load(sys.stdin); print(j.get('usage')); print([(a['name'],a.get('required')) for a in j.get('arguments',[])])"
+          echo '=== Full native canonical stages ==='
+          python -c "import json; j=json.load(open('assets/runtime/runtime-contract.json')); print([x['id'] for x in j['canonicalPhases'] if x.get('phaseKind','CANONICAL')=='CANONICAL'])"
