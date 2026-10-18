@@ -27,8 +27,8 @@ jobs:
         with:
           name: p0-real-native-unreviewed-task
           path: .
-          run-id: \${{ github.event.inputs.source_run_id || '39150138291' }}
-          github-token: \${{ github.token }}
+          run-id: ${{ github.event.inputs.source_run_id || '39150138291' }}
+          github-token: ${{ github.token }}
       - name: Clone pinned Gitee native Skill (read-only original)
         shell: bash
         run: |
