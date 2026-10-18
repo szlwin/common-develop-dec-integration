@@ -14,6 +14,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    from native_gate import validate_native_with_runner
+except ImportError:  # Allows direct imports by the unit-test harness.
+    from scripts.native_gate import validate_native_with_runner
+
 VERSION = 'common-develop-dec/p0/v1'
 GATE_VERSION = 'common-develop-dec/p0-gate/v1'
 STAGES = ('workflow-gate', 'dec-design', 'dec-java-lite', 'dec-implementation', 'binding-evidence', 'release-readiness')
@@ -117,7 +122,8 @@ class Runner:
         self.summary: Dict = {'schema': VERSION, 'createdAt': utc_now(),
             'mode': 'STATIC_ONLY' if static_only else 'END_TO_END',
             'sources': {'dec': str(self.dec_root)}, 'stages': [], 'artifacts': [],
-            'integrationStatus': 'BLOCKED', 'productReleaseReady': None}
+            'integrationStatus': 'BLOCKED', 'productReleaseReady': None,
+            'p0AcceptanceStatus': 'BLOCKED_NATIVE_WORKFLOW_UNVERIFIED'}
 
     def record(self, name: str, state: str, details: Optional[dict] = None) -> None:
         self.summary['stages'].append({'name': name, 'state': state, 'at': utc_now(), **(details or {})})
@@ -145,15 +151,52 @@ class Runner:
         return code
 
     def artifact(self, kind: str, path: Path) -> None:
-        self.summary['artifacts'].append({'type': kind, 'path': str(path), 'sha256': digest_path(path)})
+        dependencies = {
+            'dec/canonical-yaml/v1': [],
+            'dec/generated-html': ['dec/canonical-yaml/v1'],
+            'java/generated-source': ['dec/canonical-yaml/v1'],
+            'dec/implementation-binding/v1': ['dec/canonical-yaml/v1'],
+            'dec/test-evidence/v1': ['dec/canonical-yaml/v1', 'dec/implementation-binding/v1'],
+        }
+        known = {a['type']: a for a in self.summary['artifacts']}
+        parents = []
+        for expected in dependencies.get(kind, []):
+            if expected not in known:
+                raise ValueError('artifact dependency missing: ' + expected)
+            parents.append({'type': expected, 'sha256': known[expected]['sha256']})
+        gate_info = self.summary.get('workflowGate') or {}
+        if kind == 'dec/canonical-yaml/v1':
+            parents.append({'type': 'common-develop-opt/design-gate',
+                            'revision': gate_info.get('gateRevision'),
+                            'provenance': gate_info.get('provenance')})
+        entry = {'type': kind, 'path': str(path), 'sha256': digest_path(path),
+                 'inputs': parents, 'recordedAt': utc_now()}
+        self.summary['artifacts'].append(entry)
+        atomic_json(self.output / 'artifact-manifest.json', {
+            'schema': 'common-develop-dec/p0-artifacts/v1',
+            'workflowGate': gate_info, 'artifacts': self.summary['artifacts']})
         atomic_json(self.output / 'p0-report.json', self.summary)
 
-    def execute(self, gate: dict, fixture: bool = False) -> dict:
+    def execute(self, gate: dict, fixture: bool = False,
+                native_opt_root: Optional[Path] = None,
+                native_task_dir: Optional[Path] = None) -> dict:
         try:
             verified = check_gate(gate, self.dec_root, allow_fixture=fixture)
             self.summary['workflowGate'] = verified
-            self.record('workflow-gate', 'FIXTURE_ONLY' if fixture else 'EXTERNAL_EVIDENCE_ACCEPTED',
-                        {'revision': verified['gateRevision'], 'note': 'Native workflow execution is not independently verified by this adapter'})
+            if native_opt_root is not None:
+                native_evidence = validate_native_with_runner(self, native_opt_root, native_task_dir, gate)
+                self.summary['workflowGate'].update({
+                    'nativeWorkflowExecutionVerified': True,
+                    'nativeEvidence': native_evidence,
+                    'nativeSkillRoot': str(native_opt_root.resolve()),
+                    'nativeTaskDir': str(native_task_dir.resolve())})
+                self.record('workflow-gate', 'NATIVE_STAGE_OUTCOME_VERIFIED',
+                            {'revision': verified['gateRevision'],
+                             'nativeStageOutcomeId': native_evidence['stageOutcomeId']})
+            else:
+                self.record('workflow-gate', 'FIXTURE_ONLY' if fixture else 'EXTERNAL_EVIDENCE_UNVERIFIED',
+                            {'revision': verified['gateRevision'],
+                             'note': 'No native CLI StageOutcome checked; the gate JSON is insufficient for P0 acceptance'})
             root = self.dec_root
             design = root / 'demo/order-payment-yaml'
             binding = root / 'demo/order-payment-implementation-binding.yaml'
@@ -204,7 +247,11 @@ class Runner:
                              str(impl_cli / 'validate_binding.py'), '--design', str(design), '--binding', str(binding),
                              '--project-root', str(project), '--require-ready'], allow_failure=True)
                 self.summary['productReleaseReady'] = ready == 0
-                self.summary['integrationStatus'] = 'VERIFIED_WITH_FIXTURE' if fixture else 'DEC_VERIFIED_EXTERNAL_GATE_CONSUMED'
+                self.summary['integrationStatus'] = ('VERIFIED_WITH_FIXTURE' if fixture else
+                    'DEC_VERIFIED_NATIVE_GATE_CONSUMED' if native_opt_root is not None else
+                    'DEC_VERIFIED_EXTERNAL_GATE_CONSUMED')
+                if native_opt_root is not None:
+                    self.summary['p0AcceptanceStatus'] = 'NATIVE_HANDOFF_VERIFIED_DUAL_SKILL_REGRESSION_PENDING'
             check_gate(gate, root, allow_fixture=fixture)
         except Exception as exc:
             self.summary['integrationStatus'] = 'BLOCKED'
@@ -221,12 +268,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--gate', type=Path, help='external common-develop-opt design gate JSON')
     g.add_argument('--demo-fixture-gate', action='store_true', help='explicit synthetic gate: never production evidence')
+    p.add_argument('--native-opt-root', type=Path,
+                   help='actual common-develop-opt Skill root; verifies native CLI (never an arbitrary JSON claim)')
+    p.add_argument('--native-task-dir', type=Path,
+                   help='actual common-develop-opt task root with finalized design StageOutcome')
     p.add_argument('--static-only', action='store_true', help='skip generator and real tests, result always PARTIAL')
     args = p.parse_args(argv)
     try:
+        if (args.native_opt_root is None) != (args.native_task_dir is None):
+            raise ValueError('--native-opt-root and --native-task-dir are required together')
+        if args.demo_fixture_gate and args.native_opt_root is not None:
+            raise ValueError('synthetic gate cannot be accepted as native evidence')
         root = args.dec_root.resolve(strict=True)
         gate = demo_gate(root) if args.demo_fixture_gate else json.loads(args.gate.read_text(encoding='utf-8'))
-        result = Runner(root, args.output, args.static_only).execute(gate, fixture=args.demo_fixture_gate)
+        result = Runner(root, args.output, args.static_only).execute(
+            gate, fixture=args.demo_fixture_gate,
+            native_opt_root=args.native_opt_root, native_task_dir=args.native_task_dir)
         print(json.dumps({'integrationStatus': result['integrationStatus'], 'report': str((args.output / 'p0-report.json').resolve())}, ensure_ascii=False))
         return 1 if result['integrationStatus'] == 'BLOCKED' else 0
     except (ValueError, FileNotFoundError, OSError, json.JSONDecodeError) as exc:
