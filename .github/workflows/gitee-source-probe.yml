@@ -1,0 +1,24 @@
+name: Gitee common-develop-opt read-only source probe
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch public Gitee source without executing code
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git upstream
+          git -C upstream rev-parse HEAD
+          if [[ ! -f upstream/skills/common-develop-opt/SKILL.md ]]; then
+            echo 'Missing exact requested skill path'; exit 2
+          fi
+          sed -n '1,90p' upstream/skills/common-develop-opt/SKILL.md
+          echo '--- relevant scripts and contracts ---'
+          find upstream/skills/common-develop-opt -maxdepth 5 -type f | grep -E '(long_task|runtime-contract|review-contract|stage_outcome|SKILL.md)' | head -100
