@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      - name: Install standalone native Skill test dependencies
+        run: python -m pip install 'jsonschema==4.23.0' 'PyYAML==6.0.2'
       - name: Standalone common-develop-opt unittest suite
         shell: bash
         run: |
