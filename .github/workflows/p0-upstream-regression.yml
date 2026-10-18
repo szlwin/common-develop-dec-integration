@@ -1,0 +1,99 @@
+name: P0 upstream standalone Skill regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p0-upstream-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  common-develop-opt-standalone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact Gitee common-develop-opt
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git opt-src
+          actual="$(git -C opt-src rev-parse HEAD)"
+          echo "Native source sha: $actual"
+          test "$actual" = b26715f6779b373b4f840b519ba9725fed5d789a
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Standalone common-develop-opt unittest suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd opt-src/skills/common-develop-opt
+          test -f SKILL.md
+          find scripts -name 'test_*.py' | sort | tee /tmp/opt-test-files.txt
+          test "$(wc -l < /tmp/opt-test-files.txt)" -gt 0
+          python -m unittest discover -v -s scripts -p 'test_*.py' 2>&1 | tee /tmp/opt-regression.log
+          grep -Eq 'Ran [1-9][0-9]* tests?' /tmp/opt-regression.log
+      - name: Standalone opt CLI smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd opt-src/skills/common-develop-opt
+          python scripts/long_task.py --help >/dev/null
+          python scripts/wk.py --help >/dev/null
+  dec-design-implementation-standalone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: szlwin/doc-eq-code-Dgremlin-skills
+          ref: 4fb21242498746365c201fdf2a7fd8052f3a122a
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Standalone DEC dependencies
+        run: python -m pip install -r skills/dec-design/requirements.txt -r skills/dec-implementation/requirements.txt
+      - name: Standalone dec-design tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -v -s skills/dec-design/tests -p 'test_*.py' 2>&1 | tee /tmp/dec-design-regression.log
+          grep -Eq 'Ran [1-9][0-9]* tests?' /tmp/dec-design-regression.log
+      - name: Standalone dec-implementation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -v -s skills/dec-implementation/tests -p 'test_*.py' 2>&1 | tee /tmp/dec-implementation-regression.log
+          grep -Eq 'Ran [1-9][0-9]* tests?' /tmp/dec-implementation-regression.log
+  dec-java-lite-standalone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: demo-test2
+          MYSQL_ROOT_PASSWORD: demo-ci-only
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pdemo-ci-only" --health-interval=10s --health-timeout=5s --health-retries=12
+    env:
+      DEC_MYSQL_JDBC_URL: jdbc:mysql://127.0.0.1:3306/demo-test2
+      DEC_MYSQL_USER: root
+      DEC_MYSQL_PASSWORD: demo-ci-only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: szlwin/doc-eq-code-Dgremlin-skills
+          ref: 4fb21242498746365c201fdf2a7fd8052f3a122a
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: dec-java-lite/pom.xml
+      - name: Standalone dec-java-lite full reactor tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x dec-java-lite/mvnw
+          dec-java-lite/mvnw -f dec-java-lite/pom.xml -B test
