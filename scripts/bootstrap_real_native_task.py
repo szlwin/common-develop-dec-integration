@@ -76,6 +76,12 @@ def launch(skill_root: Path, doc_root: Path, output_dir: Path):
         info["beginNativeStatus"] = begin_result.get("status")
         info["beginNextAction"] = begin_result.get("nextAction") or begin_result.get("next_action")
         info["beginNextReviewer"] = begin_result.get("nextReviewer")
+        info["beginRequiredAgent"] = begin_result.get("requiredAgent")
+        info["beginClassification"] = begin_result.get("classification")
+        info["beginMissing"] = begin_result.get("missing")
+        info["beginReasonCodes"] = begin_result.get("reasonCodes")
+        info["beginAllowedCommands"] = begin_result.get("allowedCommands")
+        info["beginActionPlan"] = begin_result.get("actionPlan")
         info["beginRequiresUserDecision"] = begin_result.get("requiresUserDecision")
     except (json.JSONDecodeError, AttributeError):
         info["beginNativeStatus"] = "NON_JSON"
@@ -85,8 +91,20 @@ def launch(skill_root: Path, doc_root: Path, output_dir: Path):
                       "task": info["taskDirRelativeToDocRoot"],
                       "requiresUserDecision": info.get("beginRequiresUserDecision"),
                       "nextAction": info.get("beginNextAction")}, ensure_ascii=False))
-    if begin.returncode != 0 and info.get("beginRequiresUserDecision") is not True:
-        raise RuntimeError("Native wk begin failed unexpectedly; see saved official native output")
+    # Normal native dispatch returns BLOCKED/EXECUTION_REQUIRED with a nonzero
+    # CLI exit code until RequirementConfirmationAgent publishes a PASSED
+    # attempt. That is genuine lifecycle enforcement, not a bootstrap error.
+    expected_handoff = (
+        info.get("beginNativeStatus") == "BLOCKED"
+        and info.get("beginClassification") == "EXECUTION_REQUIRED"
+        and info.get("beginRequiredAgent") == "RequirementConfirmationAgent"
+        and "ARTIFACT_NOT_PUBLISHED" in (info.get("beginReasonCodes") or [])
+        and "long_task.start-attempt" in (info.get("beginAllowedCommands") or [])
+    )
+    if begin.returncode != 0 and not expected_handoff:
+        raise RuntimeError("Unexpected native wk begin result; see saved official output")
+    if expected_handoff:
+        print("NATIVE REQUIREMENT STAGE NEEDS EXECUTION BY RequirementConfirmationAgent; NOT APPROVED")
 
 
 
