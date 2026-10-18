@@ -75,3 +75,10 @@ The exact fixed-version DEC design can now be exported as a **content-addressed,
 - **Tracking:** [P0 authentic Review + full lifecycle blocker #1](https://github.com/szlwin/common-develop-dec-integration/issues/1).
 
 The real approved upstream task, independent Reviewer execution, native PASSED StageOutcome, and subsequent lifecycle handoffs are still **missing**, so **P0 overall remains BLOCKED**. No credentials or private tasks should be published to the public repository.
+
+
+## 2026-10-19 — genuine native task created; official first-stage Gate still BLOCKED
+
+A **real** `common-develop-opt` task was created through its official `wk start --apply` CLI (not manually constructed). A genuine `task_events.jsonl` exists for `FEATURE-DESC-DAE4FAB5F9F4`. The official `wk begin --apply` returns `BLOCKED / EXECUTION_REQUIRED`, required Agent `RequirementConfirmationAgent`, reason `ARTIFACT_NOT_PUBLISHED`, with next legal `long_task.task-context` and `long_task.start-attempt`. This is the native lifecycle correctly rejecting advancement before a PASSED requirement-confirmation attempt and Artifact. There is no Review approval or design StageOutcome.
+
+**Native evidence:** [Actions #39150138291](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39150138291) (passed kickoff), artifact `p0-real-native-unreviewed-task` containing the authentic native task directory, event ledger and two CLI JSON responses. [How to resume authentic native execution](P0-native-task-handoff.md); [Issue #1](https://github.com/szlwin/common-develop-dec-integration/issues/1) remains OPEN. Overall P0 is still **BLOCKED**; do not equate `CREATED` or `EXECUTION_REQUIRED` with a PASSED design Gate.
