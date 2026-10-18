@@ -61,6 +61,13 @@ jobs:
           grep -R -n -m 3 -E "def command_(add|plan|create)_task|add-task|plan-task|register-task|task-plan" "$skill/scripts/runtime/_long_task" "$skill/scripts/wk.py" | head -65 || true
           echo '=== LIST NATIVE ALLOWED COMMANDS ==='
           sed -n '1,105p' native-requirement-evidence/native-command-list.txt
+          echo '=== OFFICIAL TASK PLANNING TOOLS ==='
+          find "$skill/scripts" -maxdepth 2 -type f \( -iname '*task*' -o -iname '*plan*' \) | head -55
+          grep -R -n -m 1 -E 'task-plan|add-task|create-task|PLAN_TASK' "$skill/scripts/wk.py" "$skill/scripts/document_core/task_plan.py" "$skill/scripts/runtime/_long_task/commands" | head -75 || true
+          echo '=== wk command list ==='
+          python "$skill/scripts/wk.py" --help | head -95
+          echo '=== task-plan script HELP when present ==='
+          test ! -f "$skill/scripts/task_plan.py" || python "$skill/scripts/task_plan.py" --help | head -90
           python "$skill/scripts/long_task.py" task-events -g ProjectManagerAgent --task-dir "$task" --include-archive --json > native-requirement-evidence/native-events.json
       - name: Check no StageOutcome approval was fabricated
         shell: bash
