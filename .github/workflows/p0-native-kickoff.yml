@@ -1,0 +1,44 @@
+name: P0 real native workflow kickoff (no approval)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/bootstrap_real_native_task.py'
+      - '.github/workflows/p0-native-kickoff.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  start-genuine-opt-task-unreviewed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: integration
+      - name: Clone pinned original native Skill from Gitee
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git upstream
+          test "$(git -C upstream rev-parse HEAD)" = "b26715f6779b373b4f840b519ba9725fed5d789a"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install native StageResult dependencies
+        run: python -m pip install 'jsonschema==4.23.0' 'PyYAML==6.0.2'
+      - name: Execute real wk start and preserve its worktree/evidence
+        run: |
+          python integration/scripts/bootstrap_real_native_task.py \
+            --skill-root upstream/skills/common-develop-opt \
+            --doc-root native-doc \
+            --output native-kickoff-report
+      - name: Preserve genuine unreviewed native task and direct CLI result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p0-real-native-unreviewed-task
+          path: |
+            native-doc/
+            native-kickoff-report/
+          if-no-files-found: warn
