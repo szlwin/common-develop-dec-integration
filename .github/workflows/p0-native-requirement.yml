@@ -53,8 +53,14 @@ jobs:
           test -f "$task/task_events.jsonl"
           mkdir -p native-requirement-evidence
           python "$skill/scripts/long_task.py" validate -g ProjectManagerAgent --task-dir "$task" --json | tee native-requirement-evidence/native-validate.json
-          python "$skill/scripts/long_task.py" task-context -g RequirementConfirmationAgent --task-dir "$task" --json | tee native-requirement-evidence/requirement-task-context.json
+          python "$skill/scripts/long_task.py" --help > native-requirement-evidence/native-command-list.txt
+          python "$skill/scripts/long_task.py" help --command task-context --json > native-requirement-evidence/task-context-contract.json
           python "$skill/scripts/long_task.py" help --command start-attempt --json > native-requirement-evidence/start-attempt-contract.json
+          python "$skill/scripts/wk.py" context -g RequirementConfirmationAgent --task-dir "$task" --json > native-requirement-evidence/native-wk-context.json
+          echo '=== PLAN COMMAND DISCOVERY ==='
+          grep -R -n -m 3 -E "def command_(add|plan|create)_task|add-task|plan-task|register-task|task-plan" "$skill/scripts/runtime/_long_task" "$skill/scripts/wk.py" | head -65 || true
+          echo '=== LIST NATIVE ALLOWED COMMANDS ==='
+          sed -n '1,105p' native-requirement-evidence/native-command-list.txt
           python "$skill/scripts/long_task.py" task-events -g ProjectManagerAgent --task-dir "$task" --include-archive --json > native-requirement-evidence/native-events.json
       - name: Check no StageOutcome approval was fabricated
         shell: bash
@@ -63,7 +69,7 @@ jobs:
           import json
           from pathlib import Path
           out=Path('native-requirement-evidence')
-          j=json.loads((out/'requirement-task-context.json').read_text())
+          j=json.loads((out/'native-wk-context.json').read_text())
           events=json.loads((out/'native-events.json').read_text())
           v=json.loads((out/'native-validate.json').read_text())
           print('Native status:',v.get('status'))
@@ -75,6 +81,7 @@ jobs:
                   'approvalVerified':False,
                   'taskId':'FEATURE-DESC-DAE4FAB5F9F4',
                   'currentContext':j,
+                  'stageTaskPlanPresent':bool(j.get('context',{}).get('stableIdIndex',{}).get('taskIds',[])),
                   'nextRequiredStep':'A real RequirementConfirmationAgent must execute the actual task, then independent native Review'}
           (out/'requirement-handoff.json').write_text(json.dumps(status,indent=2,ensure_ascii=False))
           PY
