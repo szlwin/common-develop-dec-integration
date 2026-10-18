@@ -48,3 +48,5 @@ jobs:
           python3 scripts/long_task.py task-events -g ProjectManagerAgent --task-dir "$taskdir" --json | head -90 || true
           python3 scripts/long_task.py validate -g ProjectManagerAgent --task-dir "$taskdir" --json | head -90 || true
           python3 scripts/wk.py begin -g ProjectManagerAgent --task-dir "$taskdir" --json | head -70 || true
+          echo '--- native outcome event type constants ---'
+          grep -R -n -E 'STAGE_OUTCOME|STAGE.*FINALIZ|PHASE.*FINALIZ|stage_outcome' scripts/runtime/_long_task/commands/phases.py scripts/runtime/_long_task/stage_result.py scripts/runtime/_long_task/commands/queries.py | head -105 || true
