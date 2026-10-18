@@ -15,3 +15,8 @@ description: 将 common-develop-opt 已批准的设计阶段 Gate 证据消费�
 6. 如 canonical YAML 改变，原 Gate 的设计摘要不匹配，停止并让 common-develop-opt 重新确认及 Review。不要用本 Skill 更改 YAML/XML 或独立模拟 Review 通过。生产真实场景测试与归档仍交给上游 workflow。
 
 P0 不支持动态 SPI、Provider 自动发现及上游原生生命周期推进。本地 GitHub Actions 使用 fixture 验证 DEC 路径，绝非 common-develop-opt 原生测试成功证明。
+
+
+## P0 真正正向验收
+
+真实审查记录及原生阶段产物必须由 common-develop-opt 的正式 CLI 与独立 Reviewer 产生。设计阶段发布 Revision 必须绑定当前 DEC YAML 目录的 SHA-256；详见 [原生正向验收操作说明](docs/native-positive-runbook.md)。对于适合公开的脱敏 Demo，可以手动触发 `.github/workflows/p0-native-positive.yml`，其结果必须通过 `scripts/check_native_positive_evidence.py` 核实。没有真实获批任务的负向 CI 绿灯不构成 P0 完成。

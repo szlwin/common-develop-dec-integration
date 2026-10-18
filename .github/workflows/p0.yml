@@ -16,6 +16,8 @@ jobs:
           python-version: '3.9'
       - name: Unit and negative gate tests
         run: python -m unittest discover -v -s tests
+      - name: Compile all Python integration scripts
+        run: python -m compileall -q scripts tests
   demo-fixed-providers:
     runs-on: ubuntu-latest
     timeout-minutes: 50

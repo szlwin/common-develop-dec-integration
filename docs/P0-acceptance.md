@@ -37,3 +37,8 @@ Do not edit upstream canonical DEC YAML/XML to make integration checks pass. No 
 ### Review of 2026-10-19 and additional hardening
 
 The independent re-review confirmed CI 21/21 adapter tests and 34/34 JUnit with real DEC generated code/Binding, but no native approved design handoff. To avoid treating arbitrary revision labels as a provable native→DEC design mapping, the native positive path now requires `output_revision = sha256:<DEC-tree-digest>`, checked against bytes. Historical finalized events are invalid after a later reopen/invalidation. This strengthens admission correctness but does **not** create the missing independent Review or full native-positive run. Overall P0 remains **BLOCKED** until real native approval evidence is supplied and exercised.
+
+
+### Native-positive workflow prepared (not run with approved inputs)
+
+A manual-only [P0 native approved Gate to DEC](../.github/workflows/p0-native-positive.yml) workflow was added, with corresponding [positive evidence checker](../scripts/check_native_positive_evidence.py), negative tests and [real approval runbook](native-positive-runbook.md). It verifies the actual upstream CLI + content-addressed design approval followed by all DEC providers. **No independently reviewed positive native task or Gate has been supplied or run as of this update. The overall P0 decision is unchanged: BLOCKED / PARTIALLY IMPLEMENTED.**

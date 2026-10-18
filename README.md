@@ -72,3 +72,8 @@ Sources: [DEC Demo](https://github.com/szlwin/doc-eq-code-Dgremlin-skills/blob/m
 ### P0 native content-binding requirement
 
 For positive native handoffs, the **native** design `output_revision` and the Gate `revision` must both equal `sha256:<DEC-YAML-tree-digest>` (digest algorithm in `docs/gate-contract.md`). This revision must be set through common-develop-opt's **real** approved artifact and independent Review process, *before* native `finalize-phase`; the adapter does not rewrite task events or create approvals. Any later native phase reopen/invalidation blocks reuse of the old design StageOutcome. Existing arbitrary-label gates remain valid for fixture-only DEC validation, but not native-positive handoff.
+
+
+### Approved native handoff: reproducible positive test entrypoint
+
+See [native-positive-runbook.md](docs/native-positive-runbook.md) for the approved design lifecycle, SHA-bound Revision convention, and the exact StageOutcome/Review evidence requirements. [p0-native-positive.yml](.github/workflows/p0-native-positive.yml) is an **explicitly triggered** CI job for a real, sanitized approved task + Gate stored in this repo. It runs the native opt CLI and DEC providers, then [check_native_positive_evidence.py](scripts/check_native_positive_evidence.py). Neither the task nor a successful independent Review is presently included. The CI remains unexecuted for a genuine positive task; the overall P0 Gate remains BLOCKED.
