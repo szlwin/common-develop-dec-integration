@@ -20,7 +20,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git upstream
+          for attempt in 1 2 3; do
+            if git -c http.lowSpeedLimit=300 -c http.lowSpeedTime=60 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git upstream; then
+              break
+            fi
+            rm -rf upstream  # only the incomplete, job-local checkout; never touches user projects
+            echo "Gitee clone transient failure; attempt $attempt"
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            sleep 5
+          done
           test "$(git -C upstream rev-parse HEAD)" = "b26715f6779b373b4f840b519ba9725fed5d789a"
       - uses: actions/setup-python@v5
         with:
