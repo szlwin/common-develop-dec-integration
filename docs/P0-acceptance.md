@@ -42,3 +42,23 @@ The independent re-review confirmed CI 21/21 adapter tests and 34/34 JUnit with 
 ### Native-positive workflow prepared (not run with approved inputs)
 
 A manual-only [P0 native approved Gate to DEC](../.github/workflows/p0-native-positive.yml) workflow was added, with corresponding [positive evidence checker](../scripts/check_native_positive_evidence.py), negative tests and [real approval runbook](native-positive-runbook.md). It verifies the actual upstream CLI + content-addressed design approval followed by all DEC providers. **No independently reviewed positive native task or Gate has been supplied or run as of this update. The overall P0 decision is unchanged: BLOCKED / PARTIALLY IMPLEMENTED.**
+
+
+## 2026-10-19 — standalone regression verified
+
+Original audit finding P0-5 requested regressions of the two upstream Skills separately, not just the integration's Demo. A new standalone workflow now checks exact source baselines independently:
+
+- **common-develop-opt** from Gitee commit `b26715f6779b373b4f840b519ba9725fed5d789a`: Python 3.9, **360/360 native tests PASSED**. Test discovery uses the upstream `tests/` directory and explicitly installs `jsonschema` and PyYAML. The first attempts failed due to incorrect test discovery and missing StageResult schema dependencies; the corrected CI succeeds.
+- **dec-design** from GitHub commit `4fb21242498746365c201fdf2a7fd8052f3a122a`: **80/80 Python tests PASSED**, independently of the integration runner.
+- **dec-implementation** at the same pin: **24/24 Python tests PASSED** independently.
+- **dec-java-lite** at the same pin: **the complete standalone Maven Reactor test job PASSED** on Java 21 (MySQL test service configured).
+
+Evidence: [GitHub Actions run #39146485409](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39146485409), all three jobs successful.
+
+### Native revision compatibility finding
+
+The public Gitee `publish-artifact` implementation reads the published revision from the current **PASSED task Attempt's `output_revision`**, not a caller-provided arbitrary Gate JSON. `finalize-phase` additionally requires a published current artifact, completed tasks, real evidence, Review pass where required, no blocking issues, and traceability free of GAP/STALE. Consequently the proposed content-addressed design revision must be established **during the native Attempt and its real approval**, not retrofitted by Integration. This confirms the handoff design path, **not** successful acceptance of that precise revision format in a completed real approved task.
+
+### Remaining P0 blocker
+
+The verified independent regression closes the testing gap in P0-5. However **no genuine order/payment common-develop-opt task with an independent design Review and finalized PASSED StageOutcome was provided or generated**. The manual-only positive workflow is ready but **has not run against authentic approved evidence**. End-to-end Requirement → Design Review → DEC → TDD/Code Review/Testing and archival handoffs therefore remain **NOT VERIFIED**. A CI fixture must never be used to upgrade P0 acceptance. Final P0 decision remains **BLOCKED / PARTIALLY IMPLEMENTED**. Product Release remains NOT READY because of the four PLANNED IDs.

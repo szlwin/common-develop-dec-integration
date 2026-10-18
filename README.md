@@ -77,3 +77,8 @@ For positive native handoffs, the **native** design `output_revision` and the Ga
 ### Approved native handoff: reproducible positive test entrypoint
 
 See [native-positive-runbook.md](docs/native-positive-runbook.md) for the approved design lifecycle, SHA-bound Revision convention, and the exact StageOutcome/Review evidence requirements. [p0-native-positive.yml](.github/workflows/p0-native-positive.yml) is an **explicitly triggered** CI job for a real, sanitized approved task + Gate stored in this repo. It runs the native opt CLI and DEC providers, then [check_native_positive_evidence.py](scripts/check_native_positive_evidence.py). Neither the task nor a successful independent Review is presently included. The CI remains unexecuted for a genuine positive task; the overall P0 Gate remains BLOCKED.
+
+
+### Independent upstream regressions (P0 audit)
+
+The complete standalone [upstream regression workflow](.github/workflows/p0-upstream-regression.yml) separately tests original Gitee common-develop-opt (Python 3.9) and pinned GitHub DEC design, implementation and Java Runtime. [Successful CI #39146485409](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39146485409) records 360 native unit tests, 80 dec-design tests, 24 dec-implementation tests and the standalone Maven Reactor build. This closes the standalone regression gap, **not** the absent native-approved positive handoff. See [P0 acceptance ledger](docs/P0-acceptance.md).
