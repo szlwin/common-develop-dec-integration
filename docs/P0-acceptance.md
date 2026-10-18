@@ -1,0 +1,34 @@
+# P0 acceptance ledger — 2026-10-18
+
+## Audit and corrections
+
+Original P0 commit: cc76aca55f93797f36117ae144cd7c8e9e5aaffb.
+Initial CI run [#39118665593](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39118665593) failed because PyYAML was not installed.
+
+P0-1: CI now uses version-pinned PyYAML==6.0.2 and jsonschema==4.23.0.
+P0-2: [#39141480949](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39141480949) succeeded in BOTH unit and demo-fixed-providers. DEC source was pinned at 4fb21242498746365c201fdf2a7fd8052f3a122a. The real DEC YAML/XML/HTML/Java generation/Maven/Binding/test-evidence chain ran with an explicitly synthetic upstream Gate. Its logs and test evidence are CI artifacts.
+P0-3 (partial): The exact Gitee common-develop-opt source has been queried via read-only GitHub Actions checkout, SHA b26715f6779b373b4f840b519ba9725fed5d789a. We now verify the native long_task validate CLI AND append-only task-events; only a latest finalized PASSED design StageOutcome with matching revision/producer can serve as a native handoff. An empty native task that passes schema validation must be rejected.
+P0-4: A separate artifact-manifest.json provides the SHA-256 input dependencies and the upstream workflow revision for DEC artifacts, rather than duplicating design facts.
+P0-5: Tests cover false finalization, changed revision, wrong producer, invalid Skill identity and failed/stale validation. CI runs the real opt CLI on an unapproved disposable task to confirm it cannot unlock design.
+P0-6: this ledger records what is verified versus not.
+
+## Acceptance matrix
+
+| Requirement | Current conclusion |
+| --- | --- |
+| Repository / Integration Skill / three fixed DEC Providers | PASSED |
+| Fixed DEC provider chain on real order-payment Demo | PASSED at pinned DEC baseline (CI #39141480949) |
+| Artifact lineage | IMPLEMENTED; latest CI evidence must be checked |
+| Negative Gate scenarios and native CLI blocking | IMPLEMENTED; latest CI evidence must be checked |
+| True common-develop-opt design Review and StageOutcome | NOT VERIFIED: no approved native task directory was provided |
+| Complete requirement → design → TDD → test dual-Skill workflow | NOT VERIFIED |
+| Both upstream Skill standalone regression suites | NOT VERIFIED |
+| Product Release Gate | NOT READY; upstream Demo has 4 PLANNED design IDs |
+
+**P0 final acceptance: BLOCKED / PARTIALLY IMPLEMENTED.** Successful fixture-based DEC CI is not full dual-Skill acceptance.
+
+## Requirements for a true positive native handoff
+
+Run common-develop-opt's own authorized Agent workflow and independent Review until its genuine design finalize-phase records a PASSED StageOutcome, with its current task-event ledger. Bind that exact output_revision to the approved DEC YAML digest in an immutable handoff Gate. Invoke the adapter with --gate, --native-opt-root and --native-task-dir and collect native validate/task-events logs, Artifact manifest, all DEC commands, real JUnit reports and Binding evidence. Regress each independent Skill. Review all evidence before changing this P0 verdict; preserve productReleaseReady independently (four PLANNED IDs remain).
+
+Do not edit upstream canonical DEC YAML/XML to make integration checks pass. No fixture or actor-name switch is a real independent Review.
