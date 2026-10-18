@@ -58,6 +58,8 @@ jobs:
         run: chmod +x dec/dec-java-lite/mvnw
       - name: Run full DEC fixed-provider chain with SYNTHETIC input gate
         run: python integration/scripts/p0_integration.py --dec-root dec --output p0-output --demo-fixture-gate
+      - name: Verify real P0 evidence graph and release separation
+        run: python integration/scripts/check_p0_evidence.py --output p0-output
       - name: Archive independent workflow evidence
         if: always()
         uses: actions/upload-artifact@v4
