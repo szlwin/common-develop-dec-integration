@@ -82,3 +82,8 @@ See [native-positive-runbook.md](docs/native-positive-runbook.md) for the approv
 ### Independent upstream regressions (P0 audit)
 
 The complete standalone [upstream regression workflow](.github/workflows/p0-upstream-regression.yml) separately tests original Gitee common-develop-opt (Python 3.9) and pinned GitHub DEC design, implementation and Java Runtime. [Successful CI #39146485409](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39146485409) records 360 native unit tests, 80 dec-design tests, 24 dec-implementation tests and the standalone Maven Reactor build. This closes the standalone regression gap, **not** the absent native-approved positive handoff. See [P0 acceptance ledger](docs/P0-acceptance.md).
+
+
+### Exact order/payment review candidate (not an approval)
+
+The [P0 native review candidate workflow](.github/workflows/p0-review-candidate.yml) checks and exports a stable digest of the pinned upstream DEC canonical YAML, including individual file hashes and an explicit `AWAITING_INDEPENDENT_NATIVE_REVIEW` status. [Successful candidate generation #39147972411](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39147972411) is **not** a substitute for the independent original `common-develop-opt` Design Review. See [review scope](docs/P0-native-design-review.md) and [open P0 completion blocker #1](https://github.com/szlwin/common-develop-dec-integration/issues/1). Only an actual approved native StageOutcome and later phase proof can close P0.

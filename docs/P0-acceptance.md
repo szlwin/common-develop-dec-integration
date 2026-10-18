@@ -22,7 +22,7 @@ P0-6: this ledger records what is verified versus not.
 | Negative Gate scenarios and native CLI blocking | IMPLEMENTED; latest CI evidence must be checked |
 | True common-develop-opt design Review and StageOutcome | NOT VERIFIED: no approved native task directory was provided |
 | Complete requirement → design → TDD → test dual-Skill workflow | NOT VERIFIED |
-| Both upstream Skill standalone regression suites | NOT VERIFIED |
+| Both upstream Skill standalone regression suites | **PASSED** — [native 360, dec-design 80, dec-implementation 24, Java Maven](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39146485409) |
 | Product Release Gate | NOT READY; upstream Demo has 4 PLANNED design IDs |
 
 **P0 final acceptance: BLOCKED / PARTIALLY IMPLEMENTED.** Successful fixture-based DEC CI is not full dual-Skill acceptance.
@@ -62,3 +62,16 @@ The public Gitee `publish-artifact` implementation reads the published revision 
 ### Remaining P0 blocker
 
 The verified independent regression closes the testing gap in P0-5. However **no genuine order/payment common-develop-opt task with an independent design Review and finalized PASSED StageOutcome was provided or generated**. The manual-only positive workflow is ready but **has not run against authentic approved evidence**. End-to-end Requirement → Design Review → DEC → TDD/Code Review/Testing and archival handoffs therefore remain **NOT VERIFIED**. A CI fixture must never be used to upgrade P0 acceptance. Final P0 decision remains **BLOCKED / PARTIALLY IMPLEMENTED**. Product Release remains NOT READY because of the four PLANNED IDs.
+
+
+## 2026-10-19 — authentic design Review candidate prepared (not approved)
+
+The exact fixed-version DEC design can now be exported as a **content-addressed, unapproved** Review candidate using `scripts/build_native_review_packet.py` and [the candidate workflow](../.github/workflows/p0-review-candidate.yml).
+
+- **Source design:** pinned upstream DEC commit `4fb21242498746365c201fdf2a7fd8052f3a122a`, exactly 10 canonical order/payment YAML files.
+- **Execution evidence:** [candidate-generation Actions #39147972411](https://github.com/szlwin/common-develop-dec-integration/actions/runs/39147972411) passed; its downloadable artifact is named `p0-native-unapproved-design-review-candidate`.
+- **Candidate status:** `AWAITING_INDEPENDENT_NATIVE_REVIEW`; `approved=false`; `nativeStageOutcomeId=null`. Neither this job nor a SHA hash constitutes an independent Review.
+- **Scope and genuine prerequisites:** [order-payment native design Review specification](P0-native-design-review.md).
+- **Tracking:** [P0 authentic Review + full lifecycle blocker #1](https://github.com/szlwin/common-develop-dec-integration/issues/1).
+
+The real approved upstream task, independent Reviewer execution, native PASSED StageOutcome, and subsequent lifecycle handoffs are still **missing**, so **P0 overall remains BLOCKED**. No credentials or private tasks should be published to the public repository.
