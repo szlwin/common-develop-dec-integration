@@ -47,7 +47,10 @@ jobs:
           grep -R -l -E '"output_revision"|"event_id"|"input_revisions"' assets/runtime/* scripts/runtime/_long_task/* 2>/dev/null | head -45 || true
           echo '=== ARTIFACT REVIEW COMMANDS ==='
           python scripts/long_task.py help --command start-attempt --json | head -65
-          python scripts/long_task.py help --command record-result --json | head -65
           python scripts/long_task.py help --command finish-attempt --json | head -65
           python scripts/long_task.py help --command publish-artifact --json | head -65
-          python scripts/long_task.py help --command finalize-phase --json | head -85
+          python scripts/long_task.py help --command finalize-phase --json | head -50
+          echo '=== PHASE NAMES AND REVISION CONTRACT ==='
+          sed -n '1,62p' scripts/runtime/_long_task/contracts.py
+          sed -n '170,217p' scripts/runtime/_long_task/validation/task_completion.py
+          grep -R -n -m 2 'output_revision' assets/runtime/*json | head -25 || true
