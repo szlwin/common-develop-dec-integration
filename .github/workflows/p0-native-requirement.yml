@@ -101,3 +101,11 @@ jobs:
             native-doc/
             native-requirement-evidence/
           if-no-files-found: warn
+      - name: Preserve exact pinned original Gitee Skill for local native continuation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p0-exact-gitee-common-develop-opt-source
+          path: upstream/skills/common-develop-opt/
+          include-hidden-files: true
+          if-no-files-found: error
