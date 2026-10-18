@@ -46,6 +46,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+      - name: Install DEC Python dependencies
+        run: python -m pip install -r integration/requirements-ci.txt
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
