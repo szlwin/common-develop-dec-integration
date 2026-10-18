@@ -6,7 +6,7 @@ Integrates **common-develop-opt (external workflow owner)** with three **fixed, 
 - `dec-java-lite` builds Runtime, inspects YAML, generates Java to an isolated output directory, and tests the generated project.
 - `dec-implementation` checks real Design ID bindings, runs the existing Demo test-evidence wrapper, validates evidence, and evaluates `--require-ready` separately.
 
-**Safety and provenance:** The Gitee-hosted `common-develop-opt` workflow cannot currently be invoked through a documented native CLI/export contract in this repository. The adapter **does not** assert that its lifecycle, independent reviews or approvals ran. A provided external Gate snapshot is strictly checked against the current DEC design digest; an explicit **synthetic fixture** exists only for demonstrating DEC integration. The P0 report always sets `nativeWorkflowExecutionVerified: false`. A JSON snapshot is not a cryptographic attestation: the originating workflow must validate its own Agent roles, Review independence, Gate and revision before exporting it. Upstream Gitee connectivity/current schema needs separate end-to-end verification.
+**Safety and provenance:** The Gitee-hosted `common-develop-opt` workflow cannot currently be invoked through a documented native CLI/export contract in this repository. The adapter **does not** assert that its lifecycle, independent reviews or approvals ran. A provided external Gate snapshot is strictly checked against the current DEC design digest; an explicit **synthetic fixture** exists only for demonstrating DEC integration. The P0 report sets `nativeWorkflowExecutionVerified: false` unless the real native CLI and finalized design event are validated. A JSON snapshot is not a cryptographic attestation: the originating workflow must validate its own Agent roles, Review independence, Gate and revision before exporting it. Upstream Gitee connectivity/current schema needs separate end-to-end verification.
 
 ## Local quick start
 
@@ -32,9 +32,26 @@ python3 scripts/p0_integration.py \
 
 For **externally approved workflow evidence**, replace `--demo-fixture-gate` with `--gate /path/to/design-gate.json`. The gate must come from a real `common-develop-opt` run and use the contract described in [`docs/gate-contract.md`](docs/gate-contract.md). The runner cannot attest the native workflow; it can only check the exported evidence's structure, separation of stated identities and snapshot integrity.
 
+## Native common-develop-opt task handoff (P0 read-only bridge)
+
+The actual Gitee source has been inspected at commit `b26715f6779b373b4f840b519ba9725fed5d789a`. The exact public commands are `scripts/long_task.py validate` and `scripts/long_task.py task-events`. The integration calls those read-only commands and requires the **latest** finalized `design/PASSED` StageOutcome to match the handoff revision and producer. The upstream validator—not a self-reported JSON reviewer string—checks the task ledger and independent Review rules.
+
+```bash
+python3 scripts/p0_integration.py \
+  --dec-root ../doc-eq-code-Dgremlin-skills \
+  --output ../p0-native-output \
+  --gate /path/to/actual-design-handoff.json \
+  --native-opt-root /path/to/common-develop/skills/common-develop-opt \
+  --native-task-dir /path/to/project_doc/version/V_3.0/task/TARGET-ID
+```
+
+The external handoff JSON still freezes the canonical DEC YAML tree digest and must be bound to the native `output_revision`. It is *not* a substitute for a native StageOutcome. Unless both `--native-opt-root` and `--native-task-dir` are provided, external gate JSON remains **unverified** even if it claims `native-export`. A synthetic fixture cannot be combined with native validation.
+
+CI now has a separate job that fetches the pinned Gitee Skill and **proves a native unapproved task fails closed**. This is not a positive, independently reviewed dual-Skill scenario; see [P0 acceptance ledger](docs/P0-acceptance.md). The P0 acceptance field remains blocked until such a run is recorded.
+
 ## Run outputs and quality semantics
 
-`p0-report.json` records actual commands, exit codes and log SHA-256 hashes. `logs/` stores stdout/stderr, `design-html/` regenerated HTML, `generated-java/` new generator output. `demo/order-payment-app/target/dec-binding-evidence.json` is produced by DEC's own real test wrapper inside the **throwaway DEC checkout**, and must be archived separately by CI if required. Do not use the adapter to modify canonical YAML or generated XML directly.
+`p0-report.json` records actual commands, exit codes and log SHA-256 hashes. `artifact-manifest.json` records typed output hashes, parent artifact digests and the upstream design Gate revision. `logs/` stores stdout/stderr, `design-html/` regenerated HTML, `generated-java/` new generator output. `demo/order-payment-app/target/dec-binding-evidence.json` is produced by DEC's own real test wrapper inside the **throwaway DEC checkout**, and must be archived separately by CI if required. Do not use the adapter to modify canonical YAML or generated XML directly.
 
 | Result | Meaning |
 | --- | --- |
