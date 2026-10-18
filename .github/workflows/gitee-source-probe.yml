@@ -34,3 +34,20 @@ jobs:
           python-version: '3.9'
       - name: Verify native CLI runs and blocks unapproved design
         run: python integration/scripts/native_negative_check.py --opt-root upstream/skills/common-develop-opt
+      - name: Audit native positive contract without creating approvals
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream/skills/common-develop-opt
+          echo '=== PHASES ==='
+          grep -R -n -m 2 'PHASES =\|PHASES=' scripts/runtime/_long_task | head -25 || true
+          echo '=== REVISION PATTERNS ==='
+          grep -R -n -m 2 -E 'output_revision.*(pattern|match|regex)|REVISION_PATTERN|outputRevision.*pattern|sha256:' scripts/runtime/_long_task assets/runtime | head -80 || true
+          echo '=== NATIVE SCHEMAS ==='
+          grep -R -l -E '"output_revision"|"event_id"|"input_revisions"' assets/runtime/* scripts/runtime/_long_task/* 2>/dev/null | head -45 || true
+          echo '=== ARTIFACT REVIEW COMMANDS ==='
+          python scripts/long_task.py help --command start-attempt --json | head -65
+          python scripts/long_task.py help --command record-result --json | head -65
+          python scripts/long_task.py help --command finish-attempt --json | head -65
+          python scripts/long_task.py help --command publish-artifact --json | head -65
+          python scripts/long_task.py help --command finalize-phase --json | head -85
