@@ -22,3 +22,12 @@ jobs:
           sed -n '1,90p' upstream/skills/common-develop-opt/SKILL.md
           echo '--- relevant scripts and contracts ---'
           find upstream/skills/common-develop-opt -maxdepth 5 -type f | grep -E '(long_task|runtime-contract|review-contract|stage_outcome|SKILL.md)' | head -100
+          cd upstream/skills/common-develop-opt
+          echo '--- long_task public CLI ---'
+          python3 scripts/long_task.py --help | head -110
+          echo '--- wk begin public help ---'
+          python3 scripts/wk.py help --script wk --command begin --json | head -115
+          echo '--- wk progress public help ---'
+          python3 scripts/wk.py help --script wk --command progress --json | head -115
+          echo '--- long_task public stage CLI metadata ---'
+          python3 scripts/cli_help.py list --json | grep -E 'stage|phase|review|gate|long_task' | head -70 || true
