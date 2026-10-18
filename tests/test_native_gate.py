@@ -16,7 +16,9 @@ class NativeGateTests(unittest.TestCase):
         self.validation = {"status": "PASSED", "schemaVersion": 2, "errors": []}
         self.outcome = {"id": "SO-DESIGN-1", "phase": "design", "status": "PASSED",
                         "output_revision": self.gate["revision"],
-                        "produced_by_agent": self.gate["producer"]}
+                        "produced_by_agent": self.gate["producer"],
+                        "input_revisions": {"requirement_analysis": "REQ-R01@sha"},
+                        "evidence_ids": ["REV-DESIGN-R01"]}
         self.events = {"count": 1, "events": [
             {"type": "STAGE_OUTCOME_FINALIZED", "event_id": "TE-001",
              "payload": {"outcome": self.outcome}}]}
@@ -50,6 +52,15 @@ class NativeGateTests(unittest.TestCase):
              "payload": {"outcome": {"id": "SO-NEW", "phase": "design", "status": "FAILED",
                                      "output_revision": "NEW", "produced_by_agent": "DesignAgent"}}})
         with self.assertRaisesRegex(ValueError, "not PASSED"):
+            native.interpret_native_evidence(self.validation, self.events, self.gate)
+
+    def test_native_requirements_and_review_evidence_required(self):
+        self.outcome["input_revisions"] = {}
+        with self.assertRaisesRegex(ValueError, "input revisions"):
+            native.interpret_native_evidence(self.validation, self.events, self.gate)
+        self.outcome["input_revisions"] = {"requirement_analysis": "REQ-R01@sha"}
+        self.outcome["evidence_ids"] = []
+        with self.assertRaisesRegex(ValueError, "review/evidence"):
             native.interpret_native_evidence(self.validation, self.events, self.gate)
 
     def test_producer_must_equal_native_event_producer(self):
