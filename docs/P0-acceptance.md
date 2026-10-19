@@ -110,3 +110,12 @@ The authentic published owner handoff was restored from its ZIP and checked with
 The pre-review uncovered specific questions about the six ACs using one generic Review prompt, the tree-hash mapping algorithm, per-native-phase DEC Evidence handback, and TDD mapping to the original canonical phases. These are not independently adjudicated Findings or Review approvals. [Full preflight](P0-independent-review-preflight.md) and [Issue #1](https://github.com/szlwin/common-develop-dec-integration/issues/1) track the remaining handoff.
 
 **Current requirement_confirmation: Owner PASSED / Artifact PUBLISHED / independent Review PENDING / StageOutcome not finalized. P0 overall BLOCKED.**
+
+
+## 2026-10-19 — read-only reviewer evidence crosswalk (no new approval)
+
+Original owner-stage task and six blank AC forms were restored and verified using the exact pinned Gitee Skill. The original 27-entry SHA-256 manifest matches. Fresh `long_task validate` = PASSED (structural integrity), `wk next` = REVIEW_REQUIRED / ISOLATED_REVIEW_SESSION_REQUIRED, and all six manual assertions remain PENDING. **There are 0 STAGE_OUTCOME_FINALIZED events**. An updated self-contained handoff packet, containing the untouched original native task and Skill ZIPs, native CLI outputs, per-AC evidence matrix, digest specification and README, has been supplied in the conversation. This is not a StageOutcome or Review result.
+
+Additional Reviewer concern **PF-07**: the historical task's validation command references `../native-doc/...` relative to `/mnt/data/p0-native-stage-work/opt-pinned`, which is valid only for that source-run layout and cannot be used unchanged in a separately restored environment. Run portable read-only CLI commands with an explicit absolute `--task-dir`; any change to the canonical Task Plan must follow native amendment/version rules. See [detailed AC-01..AC-06 evidence and downstream phase crosswalk](P0-requirement-review-crosswalk.md), including the exact DEC tree hashing algorithm and absence of a separate canonical `tdd` StageOutcome in the pinned native Standard workflow.
+
+**Current native requirement_confirmation remains Owner PASSED / Artifact PUBLISHED / independent Review PENDING; P0 remains BLOCKED.** The only approval-capable next step is an actual independent RequirementAnalysisAgent session reviewing the current revision.
