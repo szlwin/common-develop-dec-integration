@@ -101,3 +101,12 @@ The **original native CLI** then ran:
 **Important status distinctions:** Owner Attempt PASSED is **not** independent Review PASSED. The StageOutcome is **PUBLISHED/RUNNING**, not `STAGE_OUTCOME_FINALIZED`. No Design StageOutcome exists; neither positive DEC native handoff nor complete P0 is verified. Review forms are prepared but **not submitted**. No P1 work has started.
 
 The authentic source and review handoff archive was generated separately for download in the task conversation, with six default-unanswered Review forms, the original append-only ledger, source snapshots, and checksums. [Exact review-handoff procedure](P0-requirement-review-handoff.md) and [P0 blocker Issue #1](https://github.com/szlwin/common-develop-dec-integration/issues/1) describe the isolated Reviewer boundary. **P0 still BLOCKED.**
+
+
+## 2026-10-19 — native Requirement Review preflight (NOT approval)
+
+The authentic published owner handoff was restored from its ZIP and checked with the **original pinned native CLI**. `long_task validate` is PASSED for structure, while `wk next` still requires an actually isolated `RequirementAnalysisAgent` session for `requirement_confirmation`. The append-only event ledger contains exactly one `STAGE_OUTCOME_PUBLISHED` and **zero `STAGE_OUTCOME_FINALIZED`**. Six native Review forms are still unanswered.
+
+The pre-review uncovered specific questions about the six ACs using one generic Review prompt, the tree-hash mapping algorithm, per-native-phase DEC Evidence handback, and TDD mapping to the original canonical phases. These are not independently adjudicated Findings or Review approvals. [Full preflight](P0-independent-review-preflight.md) and [Issue #1](https://github.com/szlwin/common-develop-dec-integration/issues/1) track the remaining handoff.
+
+**Current requirement_confirmation: Owner PASSED / Artifact PUBLISHED / independent Review PENDING / StageOutcome not finalized. P0 overall BLOCKED.**
