@@ -108,26 +108,41 @@ class NativeGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "producer"):
             native.interpret_native_evidence(self.validation, self.events, self.gate)
 
-    def test_live_native_handoff_rejects_r02_with_old_r01_trace(self):
+    def test_native_design_handoff_requires_formal_analysis_trace(self):
         import hashlib
         import json
         with tempfile.TemporaryDirectory() as t:
             root = Path(t) / "version/V_P0"
             task = root / "task/FEATURE-TEST"
             task.mkdir(parents=True)
-            req = root / "requirement/FEATURE-TEST/requirement_confirmation.md"
-            req.parent.mkdir(parents=True)
-            req.write_text("R02 content", encoding="utf-8")
-            correct = hashlib.sha256(req.read_bytes()).hexdigest()
-            (task / "traceability.json").write_text(json.dumps({"items": [
-                {"id": "TR-P0-REQCONF-001", "requirement_source_digest": "1" * 64}
-            ]}), encoding="utf-8")
+            doc_dir = root / "requirement/FEATURE-TEST"
+            doc_dir.mkdir(parents=True)
+            old = doc_dir / "requirement_confirmation.md"
+            old.write_text("old R02", encoding="utf-8")
+            (task / "traceability.json").write_text(json.dumps({"items": [{
+                "id": "TR-P0-REQCONF-001", "status": "PENDING",
+                "requirement_refs": ["version/V_P0/requirement/FEATURE-TEST/requirement_confirmation.md"],
+                "requirement_source_digest": hashlib.sha256(old.read_bytes()).hexdigest(),
+                "acceptance_criteria": ["AC-01"],
+            }]}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "canonical requirement.md"):
+                native.require_p0_current_requirement_trace(task)
+
+            current = doc_dir / "requirement.md"
+            current.write_text("official source", encoding="utf-8")
+            digest = hashlib.sha256(current.read_bytes()).hexdigest()
+            row = {
+                "id": "TR-REQ-P0-001-001", "status": "PENDING",
+                "requirement_refs": ["version/V_P0/requirement/FEATURE-TEST/requirement.md"],
+                "requirement_source_digest": "1" * 64,
+                "acceptance_criteria": ["AC-REQ-P0-001-001"],
+            }
+            (task / "traceability.json").write_text(json.dumps({"items": [row]}), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "trace SHA"):
                 native.require_p0_current_requirement_trace(task)
-            (task / "traceability.json").write_text(json.dumps({"items": [
-                {"id": "TR-P0-REQCONF-001", "requirement_source_digest": correct}
-            ]}), encoding="utf-8")
-            self.assertEqual(native.require_p0_current_requirement_trace(task), correct)
+            row["requirement_source_digest"] = digest
+            (task / "traceability.json").write_text(json.dumps({"items": [row]}), encoding="utf-8")
+            self.assertEqual(native.require_p0_current_requirement_trace(task), digest)
 
     def test_wrong_skill_cannot_be_used_as_native_opt(self):
         with tempfile.TemporaryDirectory() as t:

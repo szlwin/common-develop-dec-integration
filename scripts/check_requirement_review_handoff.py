@@ -2,8 +2,10 @@
 """Read-only consistency gate for the *real* native requirement Review handoff.
 
 Does not write canonical task state, submit manual reviews, or infer approval.
-Native long_task validate verifies schema; this complements it by checking that
-the trace points to the currently published requirement content, not R01.
+Native long_task validate verifies schema; during requirement_confirmation
+the upstream contract defers canonical trace synchronization to requirement_analysis.
+Missing/stale trace linkage is reported as a downstream condition, not a
+fabricated RequirementAnalysisAgent veto.
 """
 import argparse
 import hashlib
@@ -58,7 +60,10 @@ def check(task_dir, requirement, skill_root=None):
               if x.get("id") == "TR-P0-REQCONF-001"]
     source_digest = traces[0].get("requirement_source_digest") if len(traces) == 1 else None
     if source_digest != digest:
-        errors.append("STALE_REQUIREMENT_TRACE_DIGEST")
+        # The upstream canonical sync-traceability command is authorized for
+        # requirement_analysis, NOT a prerequisite to content Review in
+        # requirement_confirmation. Keep visible but do not forge a blocker.
+        warnings.append("TRACE_SYNC_REQUIRED_IN_REQUIREMENT_ANALYSIS")
     if len(traces) != 1 or set(traces[0].get("acceptance_criteria", [])) != EXPECTED_AC:
         errors.append("TRACE_AC_COVERAGE_INVALID")
     risk = read(task_dir / "risk.json").get("status")
@@ -80,6 +85,10 @@ def check(task_dir, requirement, skill_root=None):
         "outcomeId": outcome.get("id"), "finalizedEventPresent": finalized,
         "reviewAssertionStatus": {a.get("acceptance_id"): a.get("status") for a in criteria},
         "riskStatus": risk, "errors": errors, "warnings": warnings,
+        "downstreamDesignGateReady": (
+            source_digest == digest and not errors and finalized
+            and not any(a.get("status") != "VERIFIED" for a in criteria)
+        ),
         "independentReviewVerified": False, "p0AcceptanceStatus": "BLOCKED",
     }
     if skill_root is not None:

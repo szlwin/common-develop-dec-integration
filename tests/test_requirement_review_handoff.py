@@ -61,7 +61,11 @@ class RequirementHandoffTests(unittest.TestCase):
     def test_r01_trace_stale_after_r02_publication_is_blocking(self):
         self.source_digest = "1" * 64
         self.write()
-        self.assertIn("STALE_REQUIREMENT_TRACE_DIGEST", mod.check(self.task, self.doc)["errors"])
+        result = mod.check(self.task, self.doc)
+        self.assertNotIn("STALE_REQUIREMENT_TRACE_DIGEST", result["errors"])
+        self.assertIn("TRACE_SYNC_REQUIRED_IN_REQUIREMENT_ANALYSIS", result["warnings"])
+        self.assertFalse(result["downstreamDesignGateReady"])
+        self.assertFalse(result["independentReviewVerified"])
 
     def test_changed_requirement_file_is_blocked(self):
         self.doc.write_text("Changed after review")

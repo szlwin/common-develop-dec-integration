@@ -105,24 +105,43 @@ def interpret_native_evidence(validation: Dict[str, Any],
 
 
 def require_p0_current_requirement_trace(task_dir: Path) -> str:
-    """Fail closed if a P0 native task retains an R01 trace after R02 review.
+    """Validate the canonical native requirement identity at the *design Gate*.
 
-    Original native validate guarantees its schema, not cross-file content
-    identity. This checks the exact known P0 trace independently of any
-    hand-written gate.json; never mutates the task or invents reviewer approval.
+    The pinned upstream contract creates requirement.md at confirmation and
+    synchronizes traceability during requirement_analysis. That later sync
+    must have happened before design can become an approved DEC input.
+    Neither the legacy requirement_confirmation.md nor an obsolete R01 trace
+    can satisfy this positive-Gate check.
     """
     import hashlib
     task_dir = task_dir.resolve(strict=True)
-    data = json.loads((task_dir / "traceability.json").read_text(encoding="utf-8"))
-    entries = [x for x in data.get("items", [])
-               if isinstance(x, dict) and x.get("id") == "TR-P0-REQCONF-001"]
-    if len(entries) != 1:
-        raise ValueError("P0 native Gate requires one current requirement trace")
-    document = (task_dir.parent.parent / "requirement" / task_dir.name /
-                "requirement_confirmation.md").resolve(strict=True)
+    requirement_dir = task_dir.parent.parent / "requirement" / task_dir.name
+    document = requirement_dir / "requirement.md"
+    if not document.is_file() or document.is_symlink():
+        raise ValueError("native design Gate missing canonical requirement.md (analysis sync required)")
     digest = hashlib.sha256(document.read_bytes()).hexdigest()
-    if entries[0].get("requirement_source_digest") != digest:
-        raise ValueError("P0 native Gate is stale: requirement trace SHA does not match current requirement bytes")
+    traceability = json.loads((task_dir / "traceability.json").read_text(encoding="utf-8"))
+    entries = traceability.get("items")
+    if not isinstance(entries, list):
+        raise ValueError("native design Gate missing traceability entries")
+    # Canonical paths are DOC_ROOT-relative in native requirement_doc.py.
+    expected_suffix = f"/requirement/{task_dir.name}/requirement.md"
+    current = [
+        entry for entry in entries
+        if isinstance(entry, dict)
+        and entry.get("status") != "STALE"
+        and any(
+            isinstance(ref, str) and
+            (ref.endswith(expected_suffix) or ref == expected_suffix.lstrip("/"))
+            for ref in entry.get("requirement_refs", [])
+        )
+    ]
+    if not current:
+        raise ValueError("native design Gate missing current canonical requirement trace (analysis sync required)")
+    if any(entry.get("requirement_source_digest") != digest for entry in current):
+        raise ValueError("native design Gate is stale: canonical requirement trace SHA mismatch")
+    if not all(entry.get("acceptance_criteria") for entry in current):
+        raise ValueError("native design Gate current requirement trace has no acceptance coverage")
     return digest
 
 
