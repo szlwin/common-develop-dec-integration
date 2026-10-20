@@ -104,6 +104,28 @@ def interpret_native_evidence(validation: Dict[str, Any],
     }
 
 
+def require_p0_current_requirement_trace(task_dir: Path) -> str:
+    """Fail closed if a P0 native task retains an R01 trace after R02 review.
+
+    Original native validate guarantees its schema, not cross-file content
+    identity. This checks the exact known P0 trace independently of any
+    hand-written gate.json; never mutates the task or invents reviewer approval.
+    """
+    import hashlib
+    task_dir = task_dir.resolve(strict=True)
+    data = json.loads((task_dir / "traceability.json").read_text(encoding="utf-8"))
+    entries = [x for x in data.get("items", [])
+               if isinstance(x, dict) and x.get("id") == "TR-P0-REQCONF-001"]
+    if len(entries) != 1:
+        raise ValueError("P0 native Gate requires one current requirement trace")
+    document = (task_dir.parent.parent / "requirement" / task_dir.name /
+                "requirement_confirmation.md").resolve(strict=True)
+    digest = hashlib.sha256(document.read_bytes()).hexdigest()
+    if entries[0].get("requirement_source_digest") != digest:
+        raise ValueError("P0 native Gate is stale: requirement trace SHA does not match current requirement bytes")
+    return digest
+
+
 def native_commands(skill_root: Path, task_dir: Path):
     root = skill_root.resolve(strict=True)
     task = task_dir.resolve(strict=True)
@@ -130,4 +152,6 @@ def validate_native_with_runner(runner, skill_root: Path, task_dir: Path, gate: 
     path = runner.output / "logs"
     validation = json.loads((path / "native-workflow-task-validate.log").read_text(encoding="utf-8"))
     event_query = json.loads((path / "native-workflow-task-events.log").read_text(encoding="utf-8"))
-    return interpret_native_evidence(validation, event_query, gate)
+    result = interpret_native_evidence(validation, event_query, gate)
+    result["currentRequirementTraceSha256"] = require_p0_current_requirement_trace(task_dir)
+    return result

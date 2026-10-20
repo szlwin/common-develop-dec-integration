@@ -108,6 +108,27 @@ class NativeGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "producer"):
             native.interpret_native_evidence(self.validation, self.events, self.gate)
 
+    def test_live_native_handoff_rejects_r02_with_old_r01_trace(self):
+        import hashlib
+        import json
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t) / "version/V_P0"
+            task = root / "task/FEATURE-TEST"
+            task.mkdir(parents=True)
+            req = root / "requirement/FEATURE-TEST/requirement_confirmation.md"
+            req.parent.mkdir(parents=True)
+            req.write_text("R02 content", encoding="utf-8")
+            correct = hashlib.sha256(req.read_bytes()).hexdigest()
+            (task / "traceability.json").write_text(json.dumps({"items": [
+                {"id": "TR-P0-REQCONF-001", "requirement_source_digest": "1" * 64}
+            ]}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "trace SHA"):
+                native.require_p0_current_requirement_trace(task)
+            (task / "traceability.json").write_text(json.dumps({"items": [
+                {"id": "TR-P0-REQCONF-001", "requirement_source_digest": correct}
+            ]}), encoding="utf-8")
+            self.assertEqual(native.require_p0_current_requirement_trace(task), correct)
+
     def test_wrong_skill_cannot_be_used_as_native_opt(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)
