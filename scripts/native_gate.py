@@ -64,7 +64,16 @@ def interpret_native_evidence(validation: Dict[str, Any],
             continue
         source = str(later.get("source") or "").lower()
         event_type = str(later.get("type") or "").upper()
-        if "reopen-phase" in source or "REOPEN" in event_type or "INVALIDAT" in event_type:
+        payload = later.get("payload")
+        payload = payload if isinstance(payload, dict) else {}
+        later_outcome = payload.get("outcome") if isinstance(payload.get("outcome"), dict) else {}
+        stale = payload.get("stale_event") if isinstance(payload.get("stale_event"), dict) else {}
+        if (
+            (event_type == "STAGE_OUTCOME_SUPERSEDED" and later_outcome.get("id") == outcome.get("id"))
+            or (event_type == "PHASE_STALE" and "design" in (stale.get("invalidated_phases") or []))
+            or (event_type == "STAGE_OUTCOME_PUBLISHED" and later_outcome.get("phase") == "design")
+            or "reopen-phase" in source or "REOPEN" in event_type or "INVALIDAT" in event_type
+        ):
             raise ValueError("native design StageOutcome is stale after a reopen/invalidation event")
     if outcome.get("status") != "PASSED":
         raise ValueError("latest native design StageOutcome is not PASSED")

@@ -36,6 +36,21 @@ def build_packet(root: Path, source_revision: str) -> dict:
     yaml_files = sorted(f for f in design.iterdir() if f.suffix in (".yaml", ".yml") and f.is_file())
     if len(yaml_files) != EXPECTED_FILE_COUNT:
         raise ValueError("unexpected canonical design file count")
+    # The review digest must describe exactly the pinned tracked source bytes.
+    # A clean HEAD alone does not prove the checkout contains no local edits.
+    dirty = subprocess.run(
+        ["git", "-C", str(root), "status", "--porcelain", "--", ROOT_REL],
+        capture_output=True, text=True, check=True
+    ).stdout.strip()
+    if dirty:
+        raise ValueError("DEC canonical source is modified/untracked; independent review requires clean pinned bytes")
+    included = sorted(
+        f for f in design.rglob("*") if f.is_file()
+        and not any(part in {".git", "target", "build", ".gradle", "__pycache__", ".idea", ".mvn", "node_modules"}
+                    for part in f.relative_to(design).parts)
+    )
+    if {f.resolve() for f in included} != {f.resolve() for f in yaml_files}:
+        raise ValueError("DEC canonical tree contains files beyond the ten reviewed YAMLs")
     digest = digest_path(design)
     files = [{"path": f"{ROOT_REL}/{f.name}", "sha256": hashlib.sha256(f.read_bytes()).hexdigest()}
              for f in yaml_files]

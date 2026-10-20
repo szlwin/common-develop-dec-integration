@@ -79,6 +79,30 @@ class NativeGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "stale after"):
             native.interpret_native_evidence(self.validation, self.events, self.gate)
 
+    def test_native_stage_superseded_event_blocks_old_approval(self):
+        self.events["events"].append({
+            "type": "STAGE_OUTCOME_SUPERSEDED", "event_id": "TE-002",
+            "payload": {"outcome": {"id": "SO-DESIGN-1", "phase": "design"}}
+        })
+        with self.assertRaisesRegex(ValueError, "stale after"):
+            native.interpret_native_evidence(self.validation, self.events, self.gate)
+
+    def test_native_phase_stale_event_blocks_approval_without_source_tag(self):
+        self.events["events"].append({
+            "type": "PHASE_STALE", "event_id": "TE-002",
+            "payload": {"stale_event": {"invalidated_phases": ["design", "testing"]}}
+        })
+        with self.assertRaisesRegex(ValueError, "stale after"):
+            native.interpret_native_evidence(self.validation, self.events, self.gate)
+
+    def test_new_published_unreviewed_design_invalidates_old_finalization(self):
+        self.events["events"].append({
+            "type": "STAGE_OUTCOME_PUBLISHED", "event_id": "TE-002",
+            "payload": {"outcome": {"phase": "design", "id": "SO-DESIGN-2"}}
+        })
+        with self.assertRaisesRegex(ValueError, "stale after"):
+            native.interpret_native_evidence(self.validation, self.events, self.gate)
+
     def test_producer_must_equal_native_event_producer(self):
         self.outcome["produced_by_agent"] = "DifferentAgent"
         with self.assertRaisesRegex(ValueError, "producer"):
