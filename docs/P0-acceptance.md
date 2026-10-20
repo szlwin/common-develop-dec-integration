@@ -137,3 +137,8 @@ The Owner resumed the **original task** `FEATURE-DESC-DAE4FAB5F9F4` on a restore
 - The self-contained **R02 native task and Review handoff ZIP** was generated in the conversation and its ZIP integrity checked; its 34-file SHA256SUMS and six blank reviewer forms are available to the isolated Reviewer.
 
 [Full R-01..R-07 Owner remediation disposition](reviews/P0-REQUIREMENT-CONFIRMATION-OWNER-REMEDIATION-20261020.md). **Current Phase: Owner PASSED / Artifact PUBLISHED / isolated Review PENDING**. **P0 Overall BLOCKED**, Issue #1 OPEN, no Product Release permission and no P1.
+
+
+## 2026-10-20 — R02 new cross-file consistency finding and fail-closed code repair
+
+Independent GitHub contents Review is still 2026-10-19 `NEEDS_CHANGES`; R02 is Owner PUBLISHED, not independently PASSED. A read-only exact-Task replay found **R-08 STALE_REQUIREMENT_TRACE_DIGEST**: the current R02 content SHA-256 is `b0ae33da8cc4d416cd012eeebfa450239a46c8ee09bf2a631e685f9727bc40d2`, but `TR-P0-REQCONF-001.requirement_source_digest` still says R01 `130eb2a1a3d5b74f175755101737fe5b74a25e8fdee33665158af514a16a7db4`. Original native structural `validate=PASSED` does not catch this equality gap. New `check_requirement_review_handoff.py` now **fails closed** for the R02 task; stale/superseded Design StageOutcome checks and dirty-pinned-DEC checks are added as well. `risk.json` remains NOT_SCANNED; native Task Plan references its old iteration. No native events, approvals or original sources were rewritten. [Full reproducible findings](reviews/P0-R02-TECHNICAL-RECHECK-20261020.md); P0 still **BLOCKED** until legitimate native rework, fresh independent Review and full lifecycle approval.
