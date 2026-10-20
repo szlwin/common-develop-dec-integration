@@ -55,3 +55,14 @@ python "$SKILL_ROOT/scripts/wk.py" next \
 **必须真实更正的原生任务状态**：由合法 Owner/ProjectManager 按官方 Reopen/Amendment、当前 Task Plan 与 Trace 同步流程处理 R-08，并产生内容与 Trace 共同一致的新、可审核 Revision 及 Evidence，再提交新隔离 Reviewer。不得直接编辑已经发布的 R02 记录/旧 Event，并说仍旧通过。当前固定 Skill 的 `requirement_doc.py sync-traceability --dry-run` 对 R02 的非标准 `requirement_confirmation.md` 返回格式校验错误（缺正式规范的章节/元数据等）；因此此流程尚未能合法完成，若要使用它，需要先将当前文档转换为满足官方 `requirement.md` 规范的新修订，**不能**把重命名或单纯改 JSON 当作原生 Review。
 
 完成后独立 `RequirementAnalysisAgent` 检查并按正式原生命令提交，最后按真实 Gate `finalize-phase`。所有阶段仍须来源、Revision、Review 和 Evidence 一致。当前 **P0 BLOCKED**；不进入 P1，也不宣称生产发布就绪。
+
+
+## 2026-10-21 补充核定：R-08 的门禁时机（保留原始发现）
+
+经逐行复核固定 Gitee `common-develop-opt` 的 `requirement_doc.py` 及 `references/core/lifecycle-core.detail.md`，上述 R-08 的**数据事实与安全风险成立**，但本报告此前将其直接定义为「阻断 requirement_confirmation 独立内容 Review」的判断需限定适用阶段。官方 `sync-traceability` 在 `requirement_analysis` 完成分析校验后运行，而非需求确认内容 Review 的先决执行命令。
+
+因此，当前 R02 的旧 Trace 摘要应报告为**需求分析阶段必须完成的追踪同步**；它不替代或自动否决 `RequirementAnalysisAgent` 对 R02 需求语义、范围的独立审核。但在 `design/PASSED` 进入真正 DEC 正向交接前，必须有合法原生 `requirement.md`、当前非 STALE Trace、正确内容 SHA、真实 Reviewer 与 finalized 阶段证据；否则 Integration 必须拒绝。此次并未将 R02 Review 标记通过，也未改写旧 events/traceability。
+
+为落实上述阶段责任，修订 `check_requirement_review_handoff.py` 将旧 Trace 标记为 `TRACE_SYNC_REQUIRED_IN_REQUIREMENT_ANALYSIS` 警告；正向 `native_gate.py` 仅接受原生 canonical `requirement.md` 的当前已同步 Trace，并增加负向测试。之前描述的差异、现状 SHA 和 R-05/R-06 问题均保留作历史审计依据；此次是对**阻断阶段的纠偏**，不是取消 R-08 的安全要求。
+
+截至本次核查 GitHub 尚无 R02 新的原生独立批准记录，P0 总体仍 **BLOCKED**。

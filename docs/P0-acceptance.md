@@ -147,3 +147,15 @@ Independent GitHub contents Review is still 2026-10-19 `NEEDS_CHANGES`; R02 is O
 ### Enforcement refinement — real positive handoff also checks R-08
 
 Starting at commit `83bdfdfd9ea9dd5bd5991fa011a54b9d0624ced5`, the actual `native_gate.validate_native_with_runner` path (not just the optional handoff preflight script) verifies `TR-P0-REQCONF-001.requirement_source_digest == SHA256(current requirement_confirmation.md bytes)`. A stale R01 Trace on the published R02 requirement makes the real native Design Gate **fail closed**, even when upstream structural `long_task validate` reports PASSED. A negative regression test covers both stale and correctly bound trace digests. This is a **code-level guard, not a native approval**. Official Task Record rework and isolated Review remain outstanding.
+
+
+## 2026-10-21 — correction to R-08 gate timing, verified against pinned native contract
+
+The original [R02 technical recheck](reviews/P0-R02-TECHNICAL-RECHECK-20261020.md) correctly identified a current requirement source digest mismatch, but its wording that this **automatically blocks `requirement_confirmation` content Review** was too strict. The pinned Gitee native contract expressly places `requirement_doc.py sync-traceability` **after requirement-analysis validation**, as part of `requirement_analysis` (see `scripts/document_core/requirement_doc.py:command_sync_traceability` and `references/core/lifecycle-core.detail.md`). The native requirement confirmation gate judges scope and semantics, not completed test/trace execution.
+
+**Corrected enforcement (commit `56ef90a69003056fa739cd884541e549a1d89435`):**
+- The read-only `check_requirement_review_handoff.py` reports the stale R01 digest as `TRACE_SYNC_REQUIRED_IN_REQUIREMENT_ANALYSIS` **warning** while independently checking R02 content bytes, immutable Evidence, current Owner Attempt and pending Reviewer assertions. It **never** claims Review PASSED; independent `RequirementAnalysisAgent` review still must occur.
+- The actual positive `native_gate.py` checks the authoritative `version/V_P0/requirement/{TARGET}/requirement.md`, not legacy `requirement_confirmation.md`, and requires at least one **current non-STALE** canonical Trace with matching SHA-256 and Acceptance coverage before Design→DEC consumption. Missing canonical source, missing trace, stale digest or no Acceptance coverage **fails closed**.
+- `risk.json=NOT_SCANNED`, the original Task Plan iteration mismatch, and all 6 Reviewer assertions PENDING remain separately disclosed; none are silently repaired by this code change.
+
+**Status:** No later R02 independent Review was found in GitHub before this change. The published R02 is **not approved**; the original native historical task is not mutated, and no StageOutcome is finalized. R-08 remains a required downstream analysis/Design Gate synchronization task, not an automatic substitute for independent content Reviewer judgment. **P0 remains BLOCKED / Issue #1 OPEN.**
