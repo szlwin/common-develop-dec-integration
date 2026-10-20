@@ -119,3 +119,21 @@ Original owner-stage task and six blank AC forms were restored and verified usin
 Additional Reviewer concern **PF-07**: the historical task's validation command references `../native-doc/...` relative to `/mnt/data/p0-native-stage-work/opt-pinned`, which is valid only for that source-run layout and cannot be used unchanged in a separately restored environment. Run portable read-only CLI commands with an explicit absolute `--task-dir`; any change to the canonical Task Plan must follow native amendment/version rules. See [detailed AC-01..AC-06 evidence and downstream phase crosswalk](P0-requirement-review-crosswalk.md), including the exact DEC tree hashing algorithm and absence of a separate canonical `tdd` StageOutcome in the pinned native Standard workflow.
 
 **Current native requirement_confirmation remains Owner PASSED / Artifact PUBLISHED / independent Review PENDING; P0 remains BLOCKED.** The only approval-capable next step is an actual independent RequirementAnalysisAgent session reviewing the current revision.
+
+
+## 2026-10-20 — independent contents Review NEEDS_CHANGES, genuine Owner R02 rework PUBLISHED
+
+The independent contents review [2026-10-19 NEEDS_CHANGES](reviews/P0-REQUIREMENT-CONFIRMATION-INDEPENDENT-REVIEW-20261019.md) found R-01..R-06 substantive gaps and R-07 absence of the formal isolated Reviewer gate. These issues were **not** passed through the native `manual_review.py`.
+
+The Owner resumed the **original task** `FEATURE-DESC-DAE4FAB5F9F4` on a restored copy of the authenticated pinned Gitee Skill. It used the original official `long_task reopen-phase` command to create `requirement_confirmation` Iteration 002 and invalidate all downstream stages, preserving R01's published-but-not-finalized history and `EVD-000001/000002`. A completely reworked canonical `requirement_confirmation.md` in the new iteration documents deterministic DEC SHA-256 tree hashing, Design output revision and invalidation policy, native ten-stage/DEC Artifact handback, TDD RED/GREEN/REFACTOR subgate ownership, six differentiated AC criteria, and security/credential/cross-module risk assessments.
+
+**New native facts:**
+- Owner Attempt `ATTEMPT-TASK-REQCONF-P0-001-I002-A001` finished **PASSED** via the official CLI.
+- Current requirement Revision `REQCONF-P0-R02@sha256-b0ae33da8cc4d416cd012eeebfa450239a46c8ee09bf2a631e685f9727bc40d2`.
+- `EVD-000003` is the exact new requirement snapshot; `EVD-000004` is the actual owner command Evidence.
+- Current `SO-FEATURE-DESC-DAE4FAB5F9F4-REQUIREMENT_CONFIRMATION-I002` is **PUBLISHED**, not FINALIZED/PASSED. R01's old outcome was **SUPERSEDED** by the genuine native reopen event.
+- All six newly registered current-revision manual Review assertions remain **PENDING**; `wk next` returns `REVIEW_REQUIRED / ISOLATED_REVIEW_SESSION_REQUIRED`; no `STAGE_OUTCOME_FINALIZED` exists.
+- The original `task_plan.json` history still contains a non-portable relative validation command. The reviewer must use an absolute task path on restoration. The original `risk.json` remains `NOT_SCANNED`; the native `risk_detect.py scan` cannot run at requirement_confirmation without a development Revision. These remain disclosed review/phase risk items, not silently waived.
+- The self-contained **R02 native task and Review handoff ZIP** was generated in the conversation and its ZIP integrity checked; its 34-file SHA256SUMS and six blank reviewer forms are available to the isolated Reviewer.
+
+[Full R-01..R-07 Owner remediation disposition](reviews/P0-REQUIREMENT-CONFIRMATION-OWNER-REMEDIATION-20261020.md). **Current Phase: Owner PASSED / Artifact PUBLISHED / isolated Review PENDING**. **P0 Overall BLOCKED**, Issue #1 OPEN, no Product Release permission and no P1.
