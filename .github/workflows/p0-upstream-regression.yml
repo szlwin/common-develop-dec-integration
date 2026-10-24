@@ -19,7 +19,16 @@ jobs:
           git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git opt-src
           actual="$(git -C opt-src rev-parse HEAD)"
           echo "Native source sha: $actual"
-          test "$actual" = b26715f6779b373b4f840b519ba9725fed5d789a
+          expected=b26715f6779b373b4f840b519ba9725fed5d789a
+          if [[ "$(git -C opt-src rev-parse HEAD)" != "$expected" ]]; then
+            echo "Gitee main moved; fetching the exact audited commit, not updating the pin."
+            if ! git -C opt-src fetch --depth=1 origin "$expected"; then
+              git -C opt-src fetch --deepen=250 origin main
+            fi
+            git -C opt-src cat-file -e "$expected^{commit}" || { echo "Pinned Gitee SHA unavailable"; exit 2; }
+            git -C opt-src checkout --detach "$expected"
+          fi
+          test "$(git -C opt-src rev-parse HEAD)" = "$expected"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'

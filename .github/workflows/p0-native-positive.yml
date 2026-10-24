@@ -49,7 +49,16 @@ jobs:
         run: |
           set -euo pipefail
           git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git upstream
-          test "$(git -C upstream rev-parse HEAD)" = "b26715f6779b373b4f840b519ba9725fed5d789a"
+          expected=b26715f6779b373b4f840b519ba9725fed5d789a
+          if [[ "$(git -C upstream rev-parse HEAD)" != "$expected" ]]; then
+            echo "Gitee main moved; fetching the exact audited commit, not updating the pin."
+            if ! git -C upstream fetch --depth=1 origin "$expected"; then
+              git -C upstream fetch --deepen=250 origin main
+            fi
+            git -C upstream cat-file -e "$expected^{commit}" || { echo "Pinned Gitee SHA unavailable"; exit 2; }
+            git -C upstream checkout --detach "$expected"
+          fi
+          test "$(git -C upstream rev-parse HEAD)" = "$expected"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
