@@ -22,11 +22,21 @@ jobs:
           git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=15 clone --depth 1 --single-branch --branch main https://gitee.com/szlwin/common-develop.git upstream
           expected=b26715f6779b373b4f840b519ba9725fed5d789a
           actual="$(git -C upstream rev-parse HEAD)"
-          echo "Gitee source commit: $actual"
+          echo "Gitee current main: $actual"
           if [[ "$actual" != "$expected" ]]; then
-            echo "Gitee baseline changed; review native CLI contract before updating the pinned commit"
-            exit 2
+            echo "Gitee main advanced; keep the audited commit pinned rather than changing baseline."
+            if ! git -C upstream fetch --depth=1 origin "$expected"; then
+              echo "Direct historical SHA fetch unavailable; deepen the main history."
+              git -C upstream fetch --deepen=250 origin main
+            fi
+            if ! git -C upstream cat-file -e "$expected^{commit}"; then
+              echo "Pinned upstream commit unavailable; fail closed without using newer main."
+              exit 2
+            fi
+            git -C upstream checkout --detach "$expected"
           fi
+          test "$(git -C upstream rev-parse HEAD)" = "$expected"
+          echo "Exact pinned Gitee source: $expected"
           test -f upstream/skills/common-develop-opt/SKILL.md
       - name: Native Python runtime
         uses: actions/setup-python@v5
