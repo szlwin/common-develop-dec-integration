@@ -144,15 +144,37 @@ class NativeGateTests(unittest.TestCase):
             (task / "traceability.json").write_text(json.dumps({"items": [row]}), encoding="utf-8")
             self.assertEqual(native.require_p0_current_requirement_trace(task), digest)
 
-    def test_skill_ab_task_rejects_dec_only_legacy_native_gate(self):
-        class Runner:
-            def command(self, *_args, **_kwargs):
-                raise AssertionError("must block before any native or DEC command")
-        with tempfile.TemporaryDirectory() as t:
-            path = Path(t) / "FEATURE-DESC-2AD10B7DBDCA"
-            path.mkdir()
-            with self.assertRaisesRegex(ValueError, "two independently reviewed design sources"):
-                native.validate_native_with_runner(Runner(), path, path, {})
+    def test_v1_scope_is_checked_by_reviewed_source_for_any_task_id(self):
+        import hashlib
+        import json
+        for task_name in ("FEATURE-DESC-2AD10B7DBDCA", "FEATURE-SKILL-RENAMED", "FEATURE-DEC"):
+            with self.subTest(task=task_name), tempfile.TemporaryDirectory() as tmp:
+                task = Path(tmp) / "version/V_P0/task" / task_name
+                item = task / "evidence/objects/scope.json"
+                item.parent.mkdir(parents=True)
+                digest = "a" * 64
+                gate = {"revision": "sha256:" + digest,
+                        "artifacts": [{"path": "demo/order-payment-yaml", "sha256": digest}]}
+                native_evidence = {"evidenceIds": ["EVD-SCOPE"]}
+                scope = {"schema": "common-develop-dec/review-scope/v1",
+                         "taskId": task_name, "designSourceKind": "skill-design",
+                         "sourceSha256": digest}
+                item.write_text(json.dumps(scope), encoding="utf-8")
+                row = {"evidence_id": "EVD-SCOPE", "type": "design_ref", "capture_mode": "SNAPSHOT",
+                       "ref": "evidence/objects/scope.json",
+                       "digest": hashlib.sha256(item.read_bytes()).hexdigest()}
+                registry = task / "evidence/registry.jsonl"
+                registry.write_text(json.dumps(row) + "\n", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "Skill Design Review"):
+                    native.require_native_dec_review_scope(task, gate, native_evidence)
+                scope["designSourceKind"] = "dec-yaml-design"
+                item.write_text(json.dumps(scope), encoding="utf-8")
+                row["digest"] = hashlib.sha256(item.read_bytes()).hexdigest()
+                registry.write_text(json.dumps(row) + "\n", encoding="utf-8")
+                self.assertEqual(native.require_native_dec_review_scope(task, gate, native_evidence), "EVD-SCOPE")
+                native_evidence["evidenceIds"] = ["OTHER"]
+                with self.assertRaisesRegex(ValueError, "exactly one"):
+                    native.require_native_dec_review_scope(task, gate, native_evidence)
 
     def test_wrong_skill_cannot_be_used_as_native_opt(self):
         with tempfile.TemporaryDirectory() as t:

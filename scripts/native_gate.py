@@ -104,6 +104,51 @@ def interpret_native_evidence(validation: Dict[str, Any],
     }
 
 
+def require_native_dec_review_scope(task_dir: Path, gate: dict, native: dict) -> str:
+    """A v1 handoff needs an actual DEC YAML design scope, not a Skill approval."""
+    import hashlib
+    digest = verify_content_bound_revision(gate)
+    task = task_dir.resolve(strict=True)
+    registry = task / "evidence" / "registry.jsonl"
+    if not registry.is_file() or registry.is_symlink():
+        raise ValueError("native DEC review scope Evidence registry missing")
+    selected = set(native.get("evidenceIds") or [])
+    matches = []
+    for line in registry.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if entry.get("evidence_id") not in selected:
+            continue
+        if entry.get("type") != "design_ref" or entry.get("capture_mode") != "SNAPSHOT":
+            continue
+        ref = entry.get("ref")
+        if not isinstance(ref, str) or not ref or Path(ref).is_absolute() or ".." in Path(ref).parts:
+            raise ValueError("review scope snapshot path unsafe")
+        f = (task / ref).resolve(strict=True)
+        if task not in f.parents or not f.is_file() or f.is_symlink():
+            raise ValueError("review scope snapshot outside task")
+        body = f.read_bytes()
+        if hashlib.sha256(body).hexdigest() != entry.get("digest"):
+            raise ValueError("review scope immutable Evidence SHA mismatch")
+        try:
+            scope = json.loads(body.decode("utf-8"))
+        except (UnicodeError, ValueError):
+            raise ValueError("review scope snapshot is not JSON")
+        if not isinstance(scope, dict):
+            raise ValueError("review scope snapshot must be object")
+        if scope.get("designSourceKind") == "skill-design":
+            raise ValueError("Skill Design Review is not DEC YAML Design Review")
+        if (scope.get("schema") == "common-develop-dec/review-scope/v1"
+                and scope.get("designSourceKind") == "dec-yaml-design"
+                and scope.get("taskId") == task.name
+                and scope.get("sourceSha256") == digest):
+            matches.append(entry["evidence_id"])
+    if len(matches) != 1:
+        raise ValueError("native v1 DEC design needs exactly one matching immutable reviewed DEC YAML scope")
+    return matches[0]
+
+
 def require_p0_current_requirement_trace(task_dir: Path) -> str:
     """Validate the canonical native requirement identity at the *design Gate*.
 
@@ -165,12 +210,6 @@ def native_commands(skill_root: Path, task_dir: Path):
 
 
 def validate_native_with_runner(runner, skill_root: Path, task_dir: Path, gate: dict) -> dict:
-    # The A+B Task's design artifact is a Skill/adapter architecture design,
-    # NOT a native approval of the order-payment DEC YAML tree. The legacy
-    # single-StageOutcome gate is intentionally invalid for this Task until
-    # the two separate native approved source contracts are consumed.
-    if task_dir.name == "FEATURE-DESC-2AD10B7DBDCA":
-        raise ValueError("Skill A+B task requires two independently reviewed design sources; legacy DEC-only Gate forbidden")
     commands = native_commands(skill_root, task_dir)
     runner.command("native-workflow", "task-validate", commands["validate"], cwd=skill_root)
     runner.command("native-workflow", "task-events", commands["events"], cwd=skill_root)
@@ -179,4 +218,5 @@ def validate_native_with_runner(runner, skill_root: Path, task_dir: Path, gate: 
     event_query = json.loads((path / "native-workflow-task-events.log").read_text(encoding="utf-8"))
     result = interpret_native_evidence(validation, event_query, gate)
     result["currentRequirementTraceSha256"] = require_p0_current_requirement_trace(task_dir)
+    result["reviewedDecScopeEvidenceId"] = require_native_dec_review_scope(task_dir, gate, result)
     return result
