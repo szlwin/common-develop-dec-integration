@@ -1,3 +1,5 @@
+> **当前治理范围（2026-10-25）**：按用户明确的 Skill 项目目标，[P0 A+B 必做 / C 可选 / D 独立验收矩阵](docs/P0-skill-scope-governance-20261025.md) 为最新产品 P0 范围。原生 Standard Task 的实际强制 Gate 不因此豁免。下文早期“完整软件 E2E 才算 Skill P0 完成”陈述保留作历史基线，已由当前范围决议取代；有关独立软件 E2E 见 [Issue #2](https://github.com/szlwin/common-develop-dec-integration/issues/2)。**P0 仍 BLOCKED。**
+
 # common-develop-dec-integration — P0
 
 Integrates **common-develop-opt (external workflow owner)** with three **fixed, independently usable DEC providers**. This repository is an *adapter*, not a fork of either upstream Skill, and does not implement a generic P1 capability registry.
