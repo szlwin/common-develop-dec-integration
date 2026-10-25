@@ -99,3 +99,8 @@ The authentic Gitee `common-develop-opt` RequirementConfirmationAgent created a 
 ### Skill A+B P0: separate Skill / DEC Design sources (2026-10-25)
 
 The current native Skill A+B target is FEATURE-DESC-2AD10B7DBDCA. Its requirement confirmation R01 is **Owner PASSED / PUBLISHED**, awaiting genuine isolated RequirementAnalysisAgent review; it is not an approved design. To prevent Skill architecture review from masquerading as DEC YAML review, [the dual-source contract](docs/dual-source-design-binding.md) requires independent native Design StageOutcomes and scope evidence for both source trees. The read-only checker is scripts/check_dual_source_binding.py. Legacy single-source DEC-only native-positive intentionally rejects the new Skill task until the reviewed v2 consumer is implemented. [Execution/handoff report](docs/reviews/P0-SKILL-AB-R01-FOUR-STEP-EXECUTION-20261025.md).
+
+
+### 2026-10-25 R01 evidence recheck and dual-source Runner
+
+A verified original R01 task package is now directly byte-checked (39/39), and its genuine native nextAction is isolated RequirementAnalysisAgent Review. The [evidence report](docs/reviews/P0-SKILL-AB-R01-EVIDENCE-RECHECK-20261025.md) distinguishes Owner Artifact PUBLISHED from native Reviewer PENDING. The [dual source v2 CLI](docs/dual-source-design-binding.md) is wired for separately reviewed Skill Design and DEC YAML Design inputs; no such pair of genuinely approved StageOutcomes has been supplied. CI fixtures never count as full P0 approval.

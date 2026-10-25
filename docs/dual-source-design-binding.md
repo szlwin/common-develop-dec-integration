@@ -71,7 +71,7 @@ python scripts/check_dual_source_binding.py \
 
 只有两份完整真实证据全部满足时才返回 TWO_SOURCE_NATIVE_EVIDENCE_MATCHED；即便此预检通过，**它也不证明授权 Reviewer 真正独立执行，更不是 P0 已完整验收或产品 READY**。隔离 Reviewer/权限由原生 Host 负责。
 
-**当前集成消费能力边界**：旧 p0_integration.py 的单来源正向链路还不能直接消费 v2 两来源。为了避免误用，native_gate.validate_native_with_runner 对新 Skill A+B Task FEATURE-DESC-2AD10B7DBDCA 现有单来源 Gate 明确阻断；待真正独立 Review、双来源关联和受审的 v2 消费路径实施后再启用正向运行。不能用现有 v1 Gate、Fixture、人工 JSON 或 Skill-only Design/PASSED 代替 DEC 已批准来源。
+**当前集成消费能力边界（2026-10-25 更新）**：`p0_integration.py` 已增加 `--dual-binding`、`--skill-task-dir`、`--skill-design-source` 和现有 `--native-opt-root` / `--native-task-dir` (后者指 DEC 原生任务)。v2 模式先验证双来源，再执行固定三 Provider，最后重新验证两份原生 Task/Event、SHA 与固定 Provider 可执行源码摘要，结果写入 `p0-report.json` 的 `workflowGate.twoSourceNativeApproval` 和 Artifact Manifest。**目前没有两份真实独立 Design/PASSED**，所以仅有测试专用正向解析样例、没有真实双来源 Native-positive 成功的 CI。不能用 fixture/人工 JSON 代替真实批准。
 
 ## 4. 失效与重审
 
@@ -89,3 +89,20 @@ python scripts/check_dual_source_binding.py \
 分别给出：设计源文件/目录、源 Git commit、实际文件 SHA 或 tree digest、Native Task ID、原生最新 PASSED Design StageOutcome、Finalization Event、当前 input_revisions、全部 Evidence、审核 Scope Snapshot 和真正独立 Reviewer 的提交记录。被审核的实际输入必须在审核之前固定，不能在审核后替换 Binding 值。
 
 相关源：原始 docs/gate-contract.md 的 v1 合约与 docs/P0-native-design-review.md 历史 DEC-only 候选仍保留，不用于新的 Skill A+B 双来源正向授权。Issue #1 保持 BLOCKED。
+
+
+### 双来源 v2 Runner 用法（仅适用于真实批准任务）
+
+```sh
+python3 scripts/p0_integration.py \
+  --dec-root /trusted/pinned-dec-checkout \
+  --output /trusted/dual-source-output \
+  --gate /trusted/real-dec-design-gate.json \
+  --native-opt-root /trusted/pinned-common-develop-opt \
+  --native-task-dir /trusted/dec-native-task \
+  --dual-binding /trusted/dual-binding.json \
+  --skill-task-dir /trusted/skill-native-task \
+  --skill-design-source /trusted/skill-design.md
+```
+
+同一轮 Runner 必须核对真实 DEC Gate 与 dual-binding DEC Revision 和原生 Producer 一致、两个 StageOutcome 均为原生最新 Design/PASSED、Scope/SNAPSHOT 真实绑定当前内容、固定源 Git HEAD 正确且全仓库起始干净。Provider 运行后将再查双原生账本和两份内容摘要、计算固定 Provider 跟踪源码 SHA，任意不一致则将 Integration 结果改为 BLOCKED。产品 READY 另判，Skill A+B 的其他 Standard 生命周期仍单独验收。此流程尚未收到两份实际批准的原生输入，不声明真实正向验证通过。
