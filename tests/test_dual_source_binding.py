@@ -85,10 +85,10 @@ class DualBindingTests(unittest.TestCase):
     def test_provider_tracked_source_sha_changes_if_generator_changes(self):
         from unittest.mock import patch
         from types import SimpleNamespace
-        script = self.dec_root / "skills/dec-java-lite/generate.py"
+        script = self.dec_root / "dec-java-lite/generate.py"
         script.parent.mkdir(parents=True, exist_ok=True)
         script.write_text("print('version 1')\n", encoding="utf-8")
-        tracked = b"skills/dec-java-lite/generate.py\0"
+        tracked = b"dec-java-lite/generate.py\0"
         def fake_run(argv, capture_output=False, check=False):
             self.assertEqual(argv[-2:], ["ls-files", "-z"])
             return SimpleNamespace(returncode=0, stdout=tracked)
