@@ -206,6 +206,7 @@ class Runner:
                     raise ValueError("DEC Gate producer differs from real native DEC StageOutcome")
                 self.summary["workflowGate"].update({
                     "nativeWorkflowExecutionVerified": True,
+                    "decGateProducer": gate["producer"],
                     "fixedProviderSourceSha256": provider_source_before,
                     "nativeDesignStageOutcomeVerified": True,
                     "twoSourceNativeApproval": native_evidence,
