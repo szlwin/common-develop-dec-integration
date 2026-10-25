@@ -82,6 +82,21 @@ class DualBindingTests(unittest.TestCase):
             self.check(query=lambda *_: {"validate": {"status": "PASSED", "schemaVersion": 2, "errors": []},
                                          "events": {"events": []}})
 
+    def test_provider_tracked_source_sha_changes_if_generator_changes(self):
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        script = self.dec_root / "skills/dec-java-lite/generate.py"
+        script.parent.mkdir(parents=True, exist_ok=True)
+        script.write_text("print('version 1')\n", encoding="utf-8")
+        tracked = b"skills/dec-java-lite/generate.py\0"
+        def fake_run(argv, capture_output=False, check=False):
+            self.assertEqual(argv[-2:], ["ls-files", "-z"])
+            return SimpleNamespace(returncode=0, stdout=tracked)
+        with patch.object(dual.subprocess, "run", side_effect=fake_run):
+            prior = dual._provider_source_digest(self.dec_root)
+            script.write_text("print('changed generator')\n", encoding="utf-8")
+            self.assertNotEqual(prior, dual._provider_source_digest(self.dec_root))
+
     def test_provider_code_changes_block_even_if_yaml_unchanged(self):
         from unittest.mock import patch
         from types import SimpleNamespace
