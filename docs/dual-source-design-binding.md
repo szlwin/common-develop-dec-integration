@@ -106,3 +106,12 @@ python3 scripts/p0_integration.py \
 ```
 
 同一轮 Runner 必须核对真实 DEC Gate 与 dual-binding DEC Revision 和原生 Producer 一致、两个 StageOutcome 均为原生最新 Design/PASSED、Scope/SNAPSHOT 真实绑定当前内容、固定源 Git HEAD 正确且全仓库起始干净。Provider 运行后将再查双原生账本和两份内容摘要、计算固定 Provider 跟踪源码 SHA，任意不一致则将 Integration 结果改为 BLOCKED。产品 READY 另判，Skill A+B 的其他 Standard 生命周期仍单独验收。此流程尚未收到两份实际批准的原生输入，不声明真实正向验证通过。
+
+
+### v2 Native-positive CI（手动，严格双来源）
+
+[.github/workflows/p0-native-positive.yml](../.github/workflows/p0-native-positive.yml) 现仅接受五个相对 integration 仓库根的公开脱敏路径：gate_path、dual_binding_path、skill_task_dir、dec_task_dir、skill_design_source。其中两份 Task 必须是真实不同的原生任务；禁止使用 fixture、单一 Design 或自行制作的 PASSED Event。私人源材料必须在可信的私有 Runner 上运行，不能为触发公共 CI 而提交秘密或个人任务数据。
+
+CI 在固定 common-develop-opt 与 DEC commit 上先执行 check_dual_source_binding.py 双原生 StageOutcome/Snapshot/requirement-trace 预检，再使用 p0_integration.py --dual-binding 运行三个固定 Provider（含 Java/JUnit/Binding）；运行后由 Runner 二次校验两个 Task Event、设计 SHA 与 Provider 可执行源码 SHA。最后调用 check_dual_source_positive_evidence.py，核对同轮 Gate/Manifest、两来源独立身份、11 个真实命令和日志散列，并强制保留 NATIVE_TWO_SOURCE_HANDOFF_VERIFIED_LIFECYCLE_PENDING 和 productReleaseReady=false。缺任何输入都不能回退到 legacy v1。
+
+这里新增的离线正向/负向测试仅检验 Checker 契约；它们不是 Review 签名，也不构成真实 Native-positive 的成功运行。授权 PM、隔离 RequirementAnalysisAgent、两套真正批准的 Design StageOutcome 未完成前，P0 仍 BLOCKED。
