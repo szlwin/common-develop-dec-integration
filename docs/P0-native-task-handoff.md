@@ -1,3 +1,5 @@
+> **现行验收范围说明（2026-10-25）**：本文原先按照完整订单支付软件 Standard E2E 作为 P0 必做条件编写；该产品层范围已被用户明确澄清并由 [Skill P0 A+B 验收矩阵](P0-skill-scope-governance-20261025.md) 取代。完整业务软件 Standard E2E 已独立列为 [可选 Issue #2](https://github.com/szlwin/common-develop-dec-integration/issues/2)。**此注记不免除任何已经在真实原生 Standard 任务中生效的 Gate/Review/TDD/测试要求**；历史文字和审批记录保留审计。Skill Design 与 DEC Demo Design 不能互用一个 Reviewer/Revision，详见 [双来源绑定契约](dual-source-design-binding.md)。**P0 仍 BLOCKED。**
+
 # P0 原生任务交接 — 实际 `wk start` / `wk begin` 结果
 
 ## 可复现的原生事实
