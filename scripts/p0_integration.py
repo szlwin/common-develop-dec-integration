@@ -179,11 +179,37 @@ class Runner:
 
     def execute(self, gate: dict, fixture: bool = False,
                 native_opt_root: Optional[Path] = None,
-                native_task_dir: Optional[Path] = None) -> dict:
+                native_task_dir: Optional[Path] = None,
+                dual_binding: Optional[dict] = None,
+                skill_task_dir: Optional[Path] = None,
+                skill_design_source: Optional[Path] = None) -> dict:
         try:
             verified = check_gate(gate, self.dec_root, allow_fixture=fixture)
             self.summary['workflowGate'] = verified
-            if native_opt_root is not None:
+            if native_opt_root is not None and dual_binding is not None:
+                from check_dual_source_binding import verify as verify_two_sources, _assert_pinned_dec_checkout
+                if skill_task_dir is None or skill_design_source is None:
+                    raise ValueError("dual-source requires the original Skill task and design source")
+                if gate.get("revision") != dual_binding.get("dec", {}).get("designRevision"):
+                    raise ValueError("DEC Gate revision not bound to second native design source")
+                bound_digest = verify_content_bound_revision(gate)
+                if bound_digest != dual_binding["dec"]["sourceSha256"]:
+                    raise ValueError("DEC Gate bytes not bound to approved second design source")
+                _assert_pinned_dec_checkout(self.dec_root)
+                native_evidence = verify_two_sources(dual_binding, native_opt_root, skill_task_dir,
+                                                     native_task_dir, skill_design_source, self.dec_root)
+                self.summary["workflowGate"].update({
+                    "nativeWorkflowExecutionVerified": True,
+                    "nativeDesignStageOutcomeVerified": True,
+                    "twoSourceNativeApproval": native_evidence,
+                    "nativeSkillTaskDir": str(skill_task_dir.resolve(strict=True)),
+                    "nativeDecTaskDir": str(native_task_dir.resolve(strict=True)),
+                    "nativeSkillRoot": str(native_opt_root.resolve(strict=True)),
+                })
+                self.record("workflow-gate", "TWO_NATIVE_DESIGNS_EVIDENCE_MATCHED",
+                            {"skillRevision": native_evidence["skill"]["revision"],
+                             "decRevision": native_evidence["dec"]["revision"]})
+            elif native_opt_root is not None:
                 bound_digest = verify_content_bound_revision(gate)
                 native_evidence = validate_native_with_runner(self, native_opt_root, native_task_dir, gate)
                 native_evidence["approvedDesignTreeSha256"] = bound_digest
@@ -256,6 +282,19 @@ class Runner:
                 if native_opt_root is not None:
                     self.summary['p0AcceptanceStatus'] = 'NATIVE_HANDOFF_VERIFIED_DUAL_SKILL_REGRESSION_PENDING'
             check_gate(gate, root, allow_fixture=fixture)
+            if dual_binding is not None:
+                # Re-query both native ledgers and source digests AFTER every
+                # Provider/JUnit command. Reject reopen or source mutations
+                # during the run, not just at initial Gate dispatch.
+                after = verify_two_sources(dual_binding, native_opt_root, skill_task_dir,
+                                           native_task_dir, skill_design_source, root)
+                if after != native_evidence:
+                    raise ValueError("native dual-source approvals changed during Provider run")
+                self.summary["workflowGate"]["twoSourceNativeApproval"] = after
+                if not self.static_only:
+                    self.summary["integrationStatus"] = "DEC_VERIFIED_TWO_NATIVE_SOURCES_CONSUMED"
+                    self.summary["p0AcceptanceStatus"] = "NATIVE_TWO_SOURCE_HANDOFF_VERIFIED_LIFECYCLE_PENDING"
+                    self.record("workflow-gate", "TWO_NATIVE_SOURCES_RECHECKED_AFTER_PROVIDERS")
         except Exception as exc:
             self.summary['integrationStatus'] = 'BLOCKED'
             self.record('stop', 'BLOCKED', {'reason': str(exc)})
@@ -275,6 +314,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                    help='actual common-develop-opt Skill root; verifies native CLI (never an arbitrary JSON claim)')
     p.add_argument('--native-task-dir', type=Path,
                    help='actual common-develop-opt task root with finalized design StageOutcome')
+    p.add_argument('--dual-binding', type=Path,
+                   help='separate original native Skill and DEC Design StageOutcome references')
+    p.add_argument('--skill-task-dir', type=Path,
+                   help='the separately reviewed Skill architecture native Task')
+    p.add_argument('--skill-design-source', type=Path,
+                   help='exact Skill design file/directory reviewed by its native Design Reviewer')
     p.add_argument('--static-only', action='store_true', help='skip generator and real tests, result always PARTIAL')
     args = p.parse_args(argv)
     try:
@@ -282,11 +327,20 @@ def main(argv: Optional[List[str]] = None) -> int:
             raise ValueError('--native-opt-root and --native-task-dir are required together')
         if args.demo_fixture_gate and args.native_opt_root is not None:
             raise ValueError('synthetic gate cannot be accepted as native evidence')
+        if args.dual_binding is not None:
+            if args.demo_fixture_gate or args.native_opt_root is None or args.native_task_dir is None:
+                raise ValueError('dual-source mode requires real native opt + DEC task and external native Gate')
+            if args.skill_task_dir is None or args.skill_design_source is None:
+                raise ValueError('dual-source mode requires Skill task and design source')
+        elif args.skill_task_dir is not None or args.skill_design_source is not None:
+            raise ValueError('Skill task/source arguments require --dual-binding')
         root = args.dec_root.resolve(strict=True)
         gate = demo_gate(root) if args.demo_fixture_gate else json.loads(args.gate.read_text(encoding='utf-8'))
         result = Runner(root, args.output, args.static_only).execute(
             gate, fixture=args.demo_fixture_gate,
-            native_opt_root=args.native_opt_root, native_task_dir=args.native_task_dir)
+            native_opt_root=args.native_opt_root, native_task_dir=args.native_task_dir,
+            dual_binding=json.loads(args.dual_binding.read_text(encoding='utf-8')) if args.dual_binding else None,
+            skill_task_dir=args.skill_task_dir, skill_design_source=args.skill_design_source)
         print(json.dumps({'integrationStatus': result['integrationStatus'], 'report': str((args.output / 'p0-report.json').resolve())}, ensure_ascii=False))
         return 1 if result['integrationStatus'] == 'BLOCKED' else 0
     except (ValueError, FileNotFoundError, OSError, json.JSONDecodeError) as exc:
