@@ -168,6 +168,7 @@ def verify(binding, opt_root, skill_task, dec_task, skill_source, dec_root, quer
         _immutable_review_manifest(task, part["reviewScopeEvidenceId"], manifest_fields, digest)
         require_p0_current_requirement_trace(task)
         results[kind] = {"stageOutcomeId": stage["stageOutcomeId"],
+                         "producer": stage["producedByAgent"],
                          "revision": stage["outputRevision"],
                          "digest": digest, "scopeEvidenceId": part["reviewScopeEvidenceId"]}
     # Even for successful mechanical checks, authority/isolation are decided by
