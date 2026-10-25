@@ -130,7 +130,7 @@ class DualPositiveEvidenceTests(unittest.TestCase):
     def test_manifest_cannot_be_swapped_after_execution(self):
         self.graph["workflowGate"]["fixedProviderSourceSha256"] = digest("other")
         self.save()
-        with self.assertRaisesRegex(ValueError, "same exact v2 Gate"):
+        with self.assertRaisesRegex(ValueError, "not tied to this exact v2 Gate"):
             mod.verify(self.root)
 
     def test_changed_dec_artifact_sha_rejected(self):
