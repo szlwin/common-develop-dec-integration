@@ -48,6 +48,28 @@ def _assert_pinned_dec_checkout(dec_root):
         raise ValueError("DEC Provider checkout is dirty (YAML, scripts, generators or untracked files)")
 
 
+def _provider_source_digest(dec_root):
+    """Hash fixed tracked executable Provider sources, not generated target/ output."""
+    p = subprocess.run(["git", "-C", str(dec_root), "ls-files", "-z"],
+                       capture_output=True, check=False)
+    if p.returncode:
+        raise ValueError("DEC tracked Provider source list unavailable")
+    prefixes = ("skills/dec-design/", "skills/dec-implementation/", "dec-java-lite/",
+                "demo/order-payment-app/", "demo/order-payment-implementation-binding.yaml")
+    files = sorted(item.decode("utf-8") for item in p.stdout.split(b"\0") if item
+                   and item.decode("utf-8").startswith(prefixes))
+    if not files:
+        raise ValueError("DEC fixed Provider execution sources missing")
+    h = hashlib.sha256()
+    for name in files:
+        target = (dec_root / name).resolve(strict=True)
+        if dec_root.resolve() not in target.parents or not target.is_file() or target.is_symlink():
+            raise ValueError("DEC tracked Provider source unsafe")
+        h.update(name.encode("utf-8") + b"\0")
+        h.update(hashlib.sha256(target.read_bytes()).digest())
+    return h.hexdigest()
+
+
 def _native_query(root, task):
     commands = native_commands(root, task)
     result = {}
