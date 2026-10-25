@@ -187,7 +187,10 @@ class Runner:
             verified = check_gate(gate, self.dec_root, allow_fixture=fixture)
             self.summary['workflowGate'] = verified
             if native_opt_root is not None and dual_binding is not None:
-                from check_dual_source_binding import verify as verify_two_sources, _assert_pinned_dec_checkout
+                try:
+                    from check_dual_source_binding import verify as verify_two_sources, _assert_pinned_dec_checkout, _provider_source_digest
+                except ImportError:
+                    from scripts.check_dual_source_binding import verify as verify_two_sources, _assert_pinned_dec_checkout, _provider_source_digest
                 if skill_task_dir is None or skill_design_source is None:
                     raise ValueError("dual-source requires the original Skill task and design source")
                 if gate.get("revision") != dual_binding.get("dec", {}).get("designRevision"):
@@ -196,10 +199,14 @@ class Runner:
                 if bound_digest != dual_binding["dec"]["sourceSha256"]:
                     raise ValueError("DEC Gate bytes not bound to approved second design source")
                 _assert_pinned_dec_checkout(self.dec_root)
+                provider_source_before = _provider_source_digest(self.dec_root)
                 native_evidence = verify_two_sources(dual_binding, native_opt_root, skill_task_dir,
                                                      native_task_dir, skill_design_source, self.dec_root)
+                if gate["producer"] != native_evidence["dec"]["producer"]:
+                    raise ValueError("DEC Gate producer differs from real native DEC StageOutcome")
                 self.summary["workflowGate"].update({
                     "nativeWorkflowExecutionVerified": True,
+                    "fixedProviderSourceSha256": provider_source_before,
                     "nativeDesignStageOutcomeVerified": True,
                     "twoSourceNativeApproval": native_evidence,
                     "nativeSkillTaskDir": str(skill_task_dir.resolve(strict=True)),
@@ -290,6 +297,8 @@ class Runner:
                                            native_task_dir, skill_design_source, root)
                 if after != native_evidence:
                     raise ValueError("native dual-source approvals changed during Provider run")
+                if _provider_source_digest(root) != provider_source_before:
+                    raise ValueError("fixed Provider executable sources changed during Provider run")
                 self.summary["workflowGate"]["twoSourceNativeApproval"] = after
                 if not self.static_only:
                     self.summary["integrationStatus"] = "DEC_VERIFIED_TWO_NATIVE_SOURCES_CONSUMED"
