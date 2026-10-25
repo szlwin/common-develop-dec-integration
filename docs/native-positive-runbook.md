@@ -54,3 +54,8 @@ Successful design handoff only verifies native design Gate -> DEC. For full orig
 ## 2026-10-25 current Skill P0 scope correction
 
 **This guide validates a real native design→fixed DEC positive handoff, which remains part of the required Skill A+B acceptance.** The earlier statement that the *same order/payment business application* must subsequently finish RED/TDDReview, Development, Testing and Archive as a condition for **Skill P0** is superseded by the user's clarified [Skill P0 A+B scope matrix](P0-skill-scope-governance-20261025.md). That complete **business-software Standard E2E** now lives in [optional Issue #2](https://github.com/szlwin/common-develop-dec-integration/issues/2). This changes product acceptance **only**: a legitimately Standard-selected native Task (old or new) must still obey all its actual required stages and any applicable TDD/Reviewer Gates; neither this guide nor a fixture authorizes skipping those phases.
+
+
+### Skill A+B scope: two independent design reviewers and source identities
+
+For the new Skill task FEATURE-DESC-2AD10B7DBDCA, the old single-source positive Gate in this guide does **not** authorize a native-positive run. It would confuse Skill architecture review with the ten-file DEC YAML business design review. The [separate Design source contract](dual-source-design-binding.md) defines two native task IDs, two reviewed source SHAs, two design StageOutcomes and immutable Scope Evidence. Existing adapter code fails closed for this new Skill task; the actual v2 consumer and approved A/B native Design Tasks are still outstanding. Do not claim positive success from a stand-alone checker or fixture.

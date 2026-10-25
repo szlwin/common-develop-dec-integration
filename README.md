@@ -94,3 +94,8 @@ The [P0 native review candidate workflow](.github/workflows/p0-review-candidate.
 ### Native requirement confirmation progressed to independent Review
 
 The authentic Gitee `common-develop-opt` RequirementConfirmationAgent created a real task plan, completed its Owner Attempt with immutable requirement snapshot and command Evidence, and successfully **published** the current requirement confirmation Artifact. Its six manual Review assertions are still PENDING. Native `wk next` requires `RequirementAnalysisAgent` in a separate isolated Reviewer session, so the integration **does not** claim a finalized PASSED StageOutcome. See [handoff guide](docs/P0-requirement-review-handoff.md) and [acceptance ledger](docs/P0-acceptance.md).
+
+
+### Skill A+B P0: separate Skill / DEC Design sources (2026-10-25)
+
+The current native Skill A+B target is FEATURE-DESC-2AD10B7DBDCA. Its requirement confirmation R01 is **Owner PASSED / PUBLISHED**, awaiting genuine isolated RequirementAnalysisAgent review; it is not an approved design. To prevent Skill architecture review from masquerading as DEC YAML review, [the dual-source contract](docs/dual-source-design-binding.md) requires independent native Design StageOutcomes and scope evidence for both source trees. The read-only checker is scripts/check_dual_source_binding.py. Legacy single-source DEC-only native-positive intentionally rejects the new Skill task until the reviewed v2 consumer is implemented. [Execution/handoff report](docs/reviews/P0-SKILL-AB-R01-FOUR-STEP-EXECUTION-20261025.md).
