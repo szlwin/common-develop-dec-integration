@@ -99,6 +99,72 @@ class DualBindingTests(unittest.TestCase):
         self.assertIn("--untracked-files=all", seen[-1])
         self.assertNotIn("--", seen[-1], "Must inspect full checkout, not only YAML")
 
+    def test_complete_two_source_native_fixture_and_stale_reopen(self):
+        """A test-only native-shaped fixture, NOT a real independent approval."""
+        import hashlib
+        import json
+        def configure(kind, task, digest, scope_id, outcome_id, event_id):
+            manifest = {"schema": "common-develop-dec/review-scope/v1",
+                        "taskId": task.name, "designSourceKind": kind,
+                        "sourceSha256": digest}
+            data = json.dumps(manifest).encode("utf-8")
+            item = task / "evidence/objects/scope.json"
+            item.parent.mkdir(parents=True)
+            item.write_bytes(data)
+            row = {"evidence_id": scope_id, "type": "design_ref",
+                   "capture_mode": "SNAPSHOT", "ref": "evidence/objects/scope.json",
+                   "digest": hashlib.sha256(data).hexdigest()}
+            (task / "evidence/registry.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+            doc = task.parent.parent / "requirement" / task.name / "requirement.md"
+            doc.parent.mkdir(parents=True)
+            doc.write_text("reviewed canonical requirement", encoding="utf-8")
+            trace = {"items": [{
+                "requirement_refs": ["version/V_P0/requirement/" + task.name + "/requirement.md"],
+                "requirement_source_digest": hashlib.sha256(doc.read_bytes()).hexdigest(),
+                "acceptance_criteria": ["AC-01"],
+                "status": "PENDING"
+            }]}
+            (task / "traceability.json").write_text(json.dumps(trace), encoding="utf-8")
+            result = {"id": outcome_id, "phase": "design", "status": "PASSED",
+                      "output_revision": "sha256:" + digest,
+                      "produced_by_agent": "DesignAgent",
+                      "input_revisions": {"requirement_analysis": "REQ-AUTHORIZED"},
+                      "evidence_ids": [scope_id]}
+            return {"validate": {"status": "PASSED", "schemaVersion": 2, "errors": []},
+                    "events": {"events": [{
+                        "type": "STAGE_OUTCOME_FINALIZED", "event_id": event_id,
+                        "payload": {"outcome": result}
+                    }]}}
+
+        skill_result = configure("skill-design", self.skill_task, self.ssha,
+                                 "EVD-SKILL", "SO-SKILL", "TE-SKILL")
+        dec_result = configure("dec-yaml-design", self.dec_task, self.dsha,
+                               "EVD-DEC", "SO-DEC", "TE-DEC")
+        data = {"SKILL-TASK": skill_result, "DEC-TASK": dec_result}
+        def query(_root, task):
+            return data[task.name]
+        result = self.check(query=query)
+        self.assertEqual(result["status"], "TWO_SOURCE_NATIVE_EVIDENCE_MATCHED")
+        self.assertEqual(result["p0AcceptanceStatus"], "BLOCKED_PENDING_FULL_SKILL_ACCEPTANCE")
+        self.assertFalse(result["productReleaseReady"])
+
+        dec_result["events"]["events"].append({
+            "type": "PHASE_STALE", "event_id": "TE-REOPEN",
+            "payload": {"stale_event": {"invalidated_phases": ["design"]}}
+        })
+        with self.assertRaisesRegex(ValueError, "stale after"):
+            self.check(query=query)
+
+        dec_result["events"]["events"].pop()
+        (self.dec_root / "demo/order-payment-yaml/sample.yaml").write_text("system: changed\n")
+        with self.assertRaisesRegex(ValueError, "source digest"):
+            self.check(query=query)
+
+    def test_only_one_source_finalized_is_not_a_dual_approval(self):
+        with self.assertRaisesRegex(ValueError, "missing native finalized"):
+            self.check(query=lambda *_: {"validate": {"status": "PASSED", "schemaVersion": 2, "errors": []},
+                                         "events": {"events": []}})
+
     def test_scope_snapshot_must_be_immutable(self):
         import json
         scope = self.skill_task / "evidence"
