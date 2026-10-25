@@ -82,6 +82,23 @@ class DualBindingTests(unittest.TestCase):
             self.check(query=lambda *_: {"validate": {"status": "PASSED", "schemaVersion": 2, "errors": []},
                                          "events": {"events": []}})
 
+    def test_provider_code_changes_block_even_if_yaml_unchanged(self):
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        seen = []
+        def fake_run(argv, capture_output=False, text=False):
+            seen.append(argv)
+            if "rev-parse" in argv:
+                return SimpleNamespace(returncode=0, stdout=dual.PINNED_DEC + "\n")
+            if "status" in argv:
+                return SimpleNamespace(returncode=0, stdout=" M dec-java-lite/dec-lite-cli/src/main/java/Generator.java\n")
+            raise AssertionError(argv)
+        with patch.object(dual.subprocess, "run", side_effect=fake_run):
+            with self.assertRaisesRegex(ValueError, "Provider checkout is dirty"):
+                dual._assert_pinned_dec_checkout(self.dec_root)
+        self.assertIn("--untracked-files=all", seen[-1])
+        self.assertNotIn("--", seen[-1], "Must inspect full checkout, not only YAML")
+
     def test_scope_snapshot_must_be_immutable(self):
         import json
         scope = self.skill_task / "evidence"

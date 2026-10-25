@@ -41,9 +41,11 @@ def _assert_pinned_dec_checkout(dec_root):
     head = run(["git", "-C", str(dec_root), "rev-parse", "HEAD"])
     if head != PINNED_DEC:
         raise ValueError("DEC source commit differs from audited pin")
-    dirty = run(["git", "-C", str(dec_root), "status", "--porcelain", "--", DEC_PATH])
+    # This is executable Provider provenance, not just design YAML integrity.
+    # Check the entire fixed checkout before running any generator scripts.
+    dirty = run(["git", "-C", str(dec_root), "status", "--porcelain", "--untracked-files=all"])
     if dirty:
-        raise ValueError("DEC canonical YAML checkout has uncommitted changes")
+        raise ValueError("DEC Provider checkout is dirty (YAML, scripts, generators or untracked files)")
 
 
 def _native_query(root, task):
