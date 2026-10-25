@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""Fail-closed TWO-NATIVE-SOURCE design binding preflight for Skill A+B.
+
+This is a read-only EVIDENCE CHECKER, not a StageOutcome generator or an
+approval exporter. It cannot attest that an independent reviewer really read
+the identified material; authoritative scope approval belongs to the native
+Reviewer and its immutable evidence.
+"""
+import argparse
+import hashlib
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+try:
+    from native_gate import interpret_native_evidence, native_commands, require_p0_current_requirement_trace
+    from p0_integration import digest_path
+except ImportError:
+    from scripts.native_gate import interpret_native_evidence, native_commands, require_p0_current_requirement_trace
+    from scripts.p0_integration import digest_path
+
+SHA = re.compile(r"^[a-f0-9]{64}$")
+SCHEMA = "common-develop-dec/dual-source-design-binding/v1"
+DEC_PATH = "demo/order-payment-yaml"
+PINNED_DEC = "4fb21242498746365c201fdf2a7fd8052f3a122a"
+
+
+def _read_json(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _native_query(root, task):
+    commands = native_commands(root, task)
+    result = {}
+    for kind, command in commands.items():
+        p = subprocess.run(command, cwd=str(root), text=True, capture_output=True)
+        if p.returncode:
+            raise ValueError("native " + kind + " failed: " + (p.stdout + p.stderr)[-1200:])
+        try:
+            result[kind] = json.loads(p.stdout)
+        except json.JSONDecodeError:
+            raise ValueError("native " + kind + " was not valid JSON")
+    return result
+
+
+def _immutable_review_manifest(task, evidence_id, required, expected_digest):
+    registry = task / "evidence/registry.jsonl"
+    if not registry.is_file():
+        raise ValueError("native scope Evidence registry missing")
+    matches = [json.loads(line) for line in registry.read_text(encoding="utf-8").splitlines()
+               if line.strip() and json.loads(line).get("evidence_id") == evidence_id]
+    if len(matches) != 1:
+        raise ValueError("native reviewed scope Evidence ID not unique/found")
+    record = matches[0]
+    if record.get("type") != "design_ref" or record.get("capture_mode") != "SNAPSHOT":
+        raise ValueError("native review scope must be immutable design_ref SNAPSHOT")
+    relative = Path(record.get("ref") or "")
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError("native scope snapshot path unsafe")
+    resolved = (task / relative).resolve(strict=True)
+    if task.resolve() not in resolved.parents or not resolved.is_file():
+        raise ValueError("native scope snapshot escapes task")
+    body = resolved.read_bytes()
+    if hashlib.sha256(body).hexdigest() != record.get("digest"):
+        raise ValueError("native scope snapshot digest mismatch")
+    try:
+        manifest = json.loads(body)
+    except (ValueError, UnicodeDecodeError):
+        raise ValueError("native design scope snapshot is not JSON")
+    for key, value in required.items():
+        if manifest.get(key) != value:
+            raise ValueError("native design scope manifest " + key + " mismatch")
+    if manifest.get("sourceSha256") != expected_digest:
+        raise ValueError("review scope does not name approved content digest")
+    return record.get("digest")
+
+
+def verify(binding, opt_root, skill_task, dec_task, skill_source, dec_root, query=_native_query):
+    if not isinstance(binding, dict) or set(binding) != {"schema", "skill", "dec"}:
+        raise ValueError("dual source schema/fields invalid")
+    if binding["schema"] != SCHEMA:
+        raise ValueError("unsupported dual-source binding schema")
+    if skill_task.resolve() == dec_task.resolve():
+        raise ValueError("Skill design and DEC design must use distinct native tasks")
+    skill_sha = digest_path(skill_source)
+    dec_design = dec_root / DEC_PATH
+    dec_sha = digest_path(dec_design)
+    expected_sources = (
+        ("skill", skill_task, skill_sha, "skill-design"),
+        ("dec", dec_task, dec_sha, "dec-yaml-design"),
+    )
+    results = {}
+    for kind, task, digest, scope in expected_sources:
+        part = binding[kind]
+        fields = {"taskId", "designRevision", "stageOutcomeId", "finalizationEventId",
+                  "sourceSha256", "reviewScopeEvidenceId", "designSourceKind"}
+        if not isinstance(part, dict) or set(part) != fields:
+            raise ValueError(kind + ": missing/extra binding fields")
+        if task.name != part["taskId"] or part["sourceSha256"] != digest:
+            raise ValueError(kind + ": source digest or native Task identity mismatch")
+        if part["designSourceKind"] != scope:
+            raise ValueError(kind + ": review scope kind mismatch")
+        if not SHA.fullmatch(digest) or part["designRevision"] != "sha256:" + digest:
+            raise ValueError(kind + ": design revision not content-bound")
+        facts = query(opt_root, task)
+        events = facts["events"].get("events") or []
+        finalized = [e for e in events if e.get("type") == "STAGE_OUTCOME_FINALIZED"
+                     and (e.get("payload", {}).get("outcome") or {}).get("phase") == "design"]
+        if not finalized:
+            raise ValueError(kind + ": missing native finalized design")
+        real = finalized[-1]["payload"]["outcome"]
+        stage = interpret_native_evidence(facts["validate"], facts["events"], {
+            "revision": part["designRevision"],
+            "producer": real.get("produced_by_agent")})
+        if stage["stageOutcomeId"] != part["stageOutcomeId"] or stage["eventId"] != part["finalizationEventId"]:
+            raise ValueError(kind + ": native event identity mismatch")
+        if part["reviewScopeEvidenceId"] not in stage["evidenceIds"]:
+            raise ValueError(kind + ": approved StageOutcome does not bind reviewed scope Evidence")
+        # Even a PASSED StageOutcome is insufficient if the immutable reviewed
+        # source/scope does not name the exact bytes being consumed.
+        manifest_fields = {"schema": "common-develop-dec/review-scope/v1",
+                           "designSourceKind": scope, "taskId": task.name}
+        _immutable_review_manifest(task, part["reviewScopeEvidenceId"], manifest_fields, digest)
+        require_p0_current_requirement_trace(task)
+        results[kind] = {"stageOutcomeId": stage["stageOutcomeId"],
+                         "revision": stage["outputRevision"],
+                         "digest": digest, "scopeEvidenceId": part["reviewScopeEvidenceId"]}
+    # Even for successful mechanical checks, authority/isolation are decided by
+    # the real upstream tool; never conflate this with P0 approval.
+    return {"schema": SCHEMA, "status": "TWO_SOURCE_NATIVE_EVIDENCE_MATCHED",
+            "skill": results["skill"], "dec": results["dec"],
+            "p0AcceptanceStatus": "BLOCKED_PENDING_FULL_SKILL_ACCEPTANCE",
+            "productReleaseReady": False,
+            "reviewerScopeAuthority": "UPSTREAM_NATIVE_REVIEW_ONLY"}
+
+
+def main():
+    a = argparse.ArgumentParser(description="Read-only dual-source native evidence preflight")
+    a.add_argument("--binding", type=Path, required=True)
+    a.add_argument("--opt-root", type=Path, required=True)
+    a.add_argument("--skill-task-dir", type=Path, required=True)
+    a.add_argument("--dec-task-dir", type=Path, required=True)
+    a.add_argument("--skill-design-source", type=Path, required=True)
+    a.add_argument("--dec-root", type=Path, required=True)
+    args = a.parse_args()
+    try:
+        if args.dec_root.resolve(strict=True) == args.skill_design_source.resolve(strict=True):
+            raise ValueError("Skill design source must differ from DEC repo source")
+        result = verify(_read_json(args.binding), args.opt_root.resolve(strict=True),
+                        args.skill_task_dir.resolve(strict=True),
+                        args.dec_task_dir.resolve(strict=True),
+                        args.skill_design_source.resolve(strict=True),
+                        args.dec_root.resolve(strict=True))
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        print(json.dumps({"status": "BLOCKED", "error": str(exc),
+                          "p0AcceptanceStatus": "BLOCKED"}, ensure_ascii=False))
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
