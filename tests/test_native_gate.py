@@ -144,6 +144,16 @@ class NativeGateTests(unittest.TestCase):
             (task / "traceability.json").write_text(json.dumps({"items": [row]}), encoding="utf-8")
             self.assertEqual(native.require_p0_current_requirement_trace(task), digest)
 
+    def test_skill_ab_task_rejects_dec_only_legacy_native_gate(self):
+        class Runner:
+            def command(self, *_args, **_kwargs):
+                raise AssertionError("must block before any native or DEC command")
+        with tempfile.TemporaryDirectory() as t:
+            path = Path(t) / "FEATURE-DESC-2AD10B7DBDCA"
+            path.mkdir()
+            with self.assertRaisesRegex(ValueError, "two independently reviewed design sources"):
+                native.validate_native_with_runner(Runner(), path, path, {})
+
     def test_wrong_skill_cannot_be_used_as_native_opt(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)

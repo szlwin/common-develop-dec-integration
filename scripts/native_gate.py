@@ -165,6 +165,12 @@ def native_commands(skill_root: Path, task_dir: Path):
 
 
 def validate_native_with_runner(runner, skill_root: Path, task_dir: Path, gate: dict) -> dict:
+    # The A+B Task's design artifact is a Skill/adapter architecture design,
+    # NOT a native approval of the order-payment DEC YAML tree. The legacy
+    # single-StageOutcome gate is intentionally invalid for this Task until
+    # the two separate native approved source contracts are consumed.
+    if task_dir.name == "FEATURE-DESC-2AD10B7DBDCA":
+        raise ValueError("Skill A+B task requires two independently reviewed design sources; legacy DEC-only Gate forbidden")
     commands = native_commands(skill_root, task_dir)
     runner.command("native-workflow", "task-validate", commands["validate"], cwd=skill_root)
     runner.command("native-workflow", "task-events", commands["events"], cwd=skill_root)
