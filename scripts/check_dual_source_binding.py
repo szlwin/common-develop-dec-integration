@@ -91,7 +91,8 @@ def verify(binding, opt_root, skill_task, dec_task, skill_source, dec_root, quer
         ("skill", skill_task, skill_sha, "skill-design"),
         ("dec", dec_task, dec_sha, "dec-yaml-design"),
     )
-    results = {}
+    # Validate identities and both byte digests first. Otherwise a missing
+    # native StageOutcome can obscure stale/tampered second-source bytes.
     for kind, task, digest, scope in expected_sources:
         part = binding[kind]
         fields = {"taskId", "designRevision", "stageOutcomeId", "finalizationEventId",
@@ -104,6 +105,9 @@ def verify(binding, opt_root, skill_task, dec_task, skill_source, dec_root, quer
             raise ValueError(kind + ": review scope kind mismatch")
         if not SHA.fullmatch(digest) or part["designRevision"] != "sha256:" + digest:
             raise ValueError(kind + ": design revision not content-bound")
+    results = {}
+    for kind, task, digest, scope in expected_sources:
+        part = binding[kind]
         facts = query(opt_root, task)
         events = facts["events"].get("events") or []
         finalized = [e for e in events if e.get("type") == "STAGE_OUTCOME_FINALIZED"
