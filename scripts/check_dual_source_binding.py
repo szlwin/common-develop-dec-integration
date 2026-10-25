@@ -31,6 +31,21 @@ def _read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _assert_pinned_dec_checkout(dec_root):
+    """Reject dirty/current-main substitutions for the reviewed fixed DEC tree."""
+    def run(argv):
+        result = subprocess.run(argv, capture_output=True, text=True)
+        if result.returncode:
+            raise ValueError("DEC checkout Git evidence unavailable")
+        return result.stdout.strip()
+    head = run(["git", "-C", str(dec_root), "rev-parse", "HEAD"])
+    if head != PINNED_DEC:
+        raise ValueError("DEC source commit differs from audited pin")
+    dirty = run(["git", "-C", str(dec_root), "status", "--porcelain", "--", DEC_PATH])
+    if dirty:
+        raise ValueError("DEC canonical YAML checkout has uncommitted changes")
+
+
 def _native_query(root, task):
     commands = native_commands(root, task)
     result = {}
@@ -152,6 +167,7 @@ def main():
     try:
         if args.dec_root.resolve(strict=True) == args.skill_design_source.resolve(strict=True):
             raise ValueError("Skill design source must differ from DEC repo source")
+        _assert_pinned_dec_checkout(args.dec_root.resolve(strict=True))
         result = verify(_read_json(args.binding), args.opt_root.resolve(strict=True),
                         args.skill_task_dir.resolve(strict=True),
                         args.dec_task_dir.resolve(strict=True),
