@@ -80,7 +80,7 @@ def verify(root: Path) -> dict:
         raise ValueError("separate native Skill/DEC task identities required")
     dec_digest = two["dec"]["digest"]
     if (gate.get("gateRevision") != two["dec"]["revision"]
-            or gate.get("producer") != two["dec"]["producer"]):
+            or gate.get("decGateProducer") != two["dec"]["producer"]):
         raise ValueError("DEC Gate revision/producer differs from approved DEC design")
 
     if (graph.get("schema") != "common-develop-dec/p0-artifacts/v1"
@@ -111,7 +111,7 @@ def verify(root: Path) -> dict:
                 raise ValueError("Artifact parent SHA/dependency mismatch")
         seen[kind] = entry["sha256"]
 
-    transitions = {(s.get("name"), s.get("status")) for s in report.get("stages", [])
+    transitions = {(s.get("name"), s.get("state")) for s in report.get("stages", [])
                    if isinstance(s, dict) and s.get("name") == "workflow-gate"}
     if (("workflow-gate", "TWO_NATIVE_DESIGNS_EVIDENCE_MATCHED") not in transitions
             or ("workflow-gate", "TWO_NATIVE_SOURCES_RECHECKED_AFTER_PROVIDERS") not in transitions):
