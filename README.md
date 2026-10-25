@@ -104,3 +104,10 @@ The current native Skill A+B target is FEATURE-DESC-2AD10B7DBDCA. Its requiremen
 ### 2026-10-25 R01 evidence recheck and dual-source Runner
 
 A verified original R01 task package is now directly byte-checked (39/39), and its genuine native nextAction is isolated RequirementAnalysisAgent Review. The [evidence report](docs/reviews/P0-SKILL-AB-R01-EVIDENCE-RECHECK-20261025.md) distinguishes Owner Artifact PUBLISHED from native Reviewer PENDING. The [dual source v2 CLI](docs/dual-source-design-binding.md) is wired for separately reviewed Skill Design and DEC YAML Design inputs; no such pair of genuinely approved StageOutcomes has been supplied. CI fixtures never count as full P0 approval.
+
+
+### Current v2 Skill A+B Native-positive CI (distinct from historical DEC-only handoff)
+
+The manual-only [.github/workflows/p0-native-positive.yml](.github/workflows/p0-native-positive.yml) now requires a separate genuinely reviewed Skill Design native task and DEC YAML native task, an immutable dual-source binding, the actual reviewed Skill Design source and the DEC native Gate. Five input paths are mandatory and repository-relative (gate_path, dual_binding_path, skill_task_dir, dec_task_dir, skill_design_source); there is no implicit v1 or synthetic fixture fallback. The workflow runs the dual-source preflight, full fixed DEC Provider/Java/JUnit chain, and post-run [v2 evidence verifier](scripts/check_dual_source_positive_evidence.py). See [runbook](docs/native-positive-runbook.md) and [binding contract](docs/dual-source-design-binding.md).
+
+No two genuinely independent authorized finalized Design outcomes are present in the public repo. CI readiness is not CI execution; P0 stays BLOCKED. Never upload private workflow tasks or credentials to public Actions.
