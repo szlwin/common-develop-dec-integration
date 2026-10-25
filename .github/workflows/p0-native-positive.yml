@@ -1,19 +1,31 @@
-name: P0 native approved design handoff (explicit only)
+name: P0 native dual-source design handoff (explicit only)
 on:
   workflow_dispatch:
     inputs:
       gate_path:
-        description: "Sanitized native handoff Gate JSON path inside this repo"
+        description: "Sanitized actual DEC native-export Gate JSON inside this repo"
         required: true
         type: string
-      task_dir:
-        description: "Sanitized common-develop-opt project task directory inside this repo"
+      dual_binding_path:
+        description: "Sanitized binding to BOTH genuinely finalized native Design outcomes"
+        required: true
+        type: string
+      skill_task_dir:
+        description: "Sanitized approved Skill Design native task directory"
+        required: true
+        type: string
+      dec_task_dir:
+        description: "Sanitized approved DEC YAML Design native task directory"
+        required: true
+        type: string
+      skill_design_source:
+        description: "Sanitized reviewed Skill Design source file/directory"
         required: true
         type: string
 permissions:
   contents: read
 jobs:
-  approved-gate-to-dec:
+  approved-dual-gate-to-dec:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     services:
@@ -31,14 +43,17 @@ jobs:
       DEC_MYSQL_JDBC_URL: jdbc:mysql://127.0.0.1:3306/demo-test2
       DEC_MYSQL_USER: root
       DEC_MYSQL_PASSWORD: demo-ci-only
-      NATIVE_TASK_DIR: ${{ inputs.task_dir }}
       NATIVE_GATE_PATH: ${{ inputs.gate_path }}
+      DUAL_BINDING_PATH: ${{ inputs.dual_binding_path }}
+      NATIVE_SKILL_TASK_DIR: ${{ inputs.skill_task_dir }}
+      NATIVE_DEC_TASK_DIR: ${{ inputs.dec_task_dir }}
+      NATIVE_SKILL_DESIGN_PATH: ${{ inputs.skill_design_source }}
     steps:
-      - name: Checkout integration plus sanitized approved task
+      - name: Checkout integration with sanitized real approved task evidence
         uses: actions/checkout@v4
         with:
           path: integration
-      - name: Checkout exact DEC Demo revision
+      - name: Checkout exact audited DEC Demo revision
         uses: actions/checkout@v4
         with:
           repository: szlwin/doc-eq-code-Dgremlin-skills
@@ -70,40 +85,71 @@ jobs:
           java-version: '21'
           cache: maven
           cache-dependency-path: dec/dec-java-lite/pom.xml
-      - name: Validate native evidence paths are inside repository
+      - name: Validate ALL approved input paths are existing in-repository and distinct
         shell: bash
         run: |
           python - <<'PY'
-          from pathlib import Path
           import os
+          from pathlib import Path
           root = Path("integration").resolve(strict=True)
-          for envvar in ("NATIVE_TASK_DIR", "NATIVE_GATE_PATH"):
-              rel = Path(os.environ[envvar])
-              if rel.is_absolute() or ".." in rel.parts:
-                  raise SystemExit("Unsafe path: " + envvar)
-              f = (root / rel).resolve(strict=True)
-              if root not in f.parents:
-                  raise SystemExit("Path escapes repository: " + envvar)
+          sources = {}
+          expected = {
+              "NATIVE_GATE_PATH": "file",
+              "DUAL_BINDING_PATH": "file",
+              "NATIVE_SKILL_TASK_DIR": "dir",
+              "NATIVE_DEC_TASK_DIR": "dir",
+              "NATIVE_SKILL_DESIGN_PATH": "either",
+          }
+          for name, kind in expected.items():
+              raw = os.environ.get(name) or ""
+              rel = Path(raw)
+              if not raw.strip() or rel.is_absolute() or ".." in rel.parts or rel == Path("."):
+                  raise SystemExit("Missing or unsafe input: " + name)
+              target = (root / rel).resolve(strict=True)
+              if root not in target.parents:
+                  raise SystemExit("Input escapes repository: " + name)
+              if kind == "dir" and not target.is_dir():
+                  raise SystemExit("Expected directory: " + name)
+              if kind == "file" and not target.is_file():
+                  raise SystemExit("Expected file: " + name)
+              sources[name] = target
+          if sources["NATIVE_SKILL_TASK_DIR"] == sources["NATIVE_DEC_TASK_DIR"]:
+              raise SystemExit("Skill and DEC native tasks must be distinct")
           PY
-      - name: Run actual native-positive fixed-provider integration
+      - name: Preflight both authentic Design StageOutcomes and reviewed source digests
         shell: bash
         run: |
+          set -euo pipefail
+          python integration/scripts/check_dual_source_binding.py \
+            --binding "integration/$DUAL_BINDING_PATH" \
+            --opt-root upstream/skills/common-develop-opt \
+            --skill-task-dir "integration/$NATIVE_SKILL_TASK_DIR" \
+            --dec-task-dir "integration/$NATIVE_DEC_TASK_DIR" \
+            --skill-design-source "integration/$NATIVE_SKILL_DESIGN_PATH" \
+            --dec-root dec
+      - name: Run full fixed DEC Provider/Java/JUnit with TWO native approved designs
+        shell: bash
+        run: |
+          set -euo pipefail
           chmod +x dec/dec-java-lite/mvnw
           python integration/scripts/p0_integration.py \
             --dec-root dec \
-            --output p0-native-output \
+            --output p0-native-dual-output \
             --gate "integration/$NATIVE_GATE_PATH" \
             --native-opt-root upstream/skills/common-develop-opt \
-            --native-task-dir "integration/$NATIVE_TASK_DIR"
-      - name: Verify native handoff evidence and exact release boundary
-        run: python integration/scripts/check_native_positive_evidence.py --output p0-native-output
-      - name: Upload positive native Gate and DEC evidence
+            --native-task-dir "integration/$NATIVE_DEC_TASK_DIR" \
+            --dual-binding "integration/$DUAL_BINDING_PATH" \
+            --skill-task-dir "integration/$NATIVE_SKILL_TASK_DIR" \
+            --skill-design-source "integration/$NATIVE_SKILL_DESIGN_PATH"
+      - name: Verify post-Provider two-source and Artifact evidence (not full Skill acceptance)
+        run: python integration/scripts/check_dual_source_positive_evidence.py --output p0-native-dual-output
+      - name: Upload native v2 positive evidence (never upload private tasks)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: p0-real-native-positive-evidence
+          name: p0-real-native-dual-source-evidence
           path: |
-            p0-native-output/
+            p0-native-dual-output/
             dec/demo/order-payment-app/target/dec-binding-evidence.json
             dec/demo/order-payment-app/target/surefire-reports/
           if-no-files-found: warn
